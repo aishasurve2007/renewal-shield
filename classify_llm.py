@@ -4,9 +4,11 @@ Renewal Shield — Phase 3, step 3: LLM clause classifier.
 Same task and same output as the baseline (category / problem-or-fine / severity),
 so the numbers compare directly. Two modes:
 
-  zero  – the model only gets the category descriptions. Tests what it already knows.
-  law   – the model also gets short rules from Law 26/2007 (as amended by 33/2008)
-          and Decree 43/2013. Tests whether giving it the law helps.
+  zero    – the model only gets the category descriptions. Tests what it already knows.
+  law     – plus short rule summaries I wrote from the law (close to labelling guidelines).
+  rag     – plus the law articles RETRIEVED for this clause, quoted verbatim (law_index.py).
+  oracle  – plus the CORRECT articles for this clause, verbatim: the best rag could ever do.
+            rag vs oracle separates retrieval mistakes from reasoning mistakes.
 
 No training happens, so no leave-one-out is needed: every clause is unseen.
 
@@ -28,6 +30,9 @@ Usage:
   python classify_llm.py --provider gemini --mode zero
   python classify_llm.py --provider gemini --mode law
   python classify_llm.py --provider gemini --mode law --ocr-dir out   # also test on OCR'd photo text
+  python classify_llm.py --provider openai --mode rag --ocr-dir out    # retrieved articles (BM25, k=3)
+  python classify_llm.py --provider openai --mode rag --retriever openai
+  python classify_llm.py --provider openai --mode oracle              # correct articles
   python classify_llm.py --compare                                    # table of every run so far
 """
 
@@ -119,8 +124,20 @@ PROMPT_VERSION = "v2"
 
 
 # ----------------------------------------------------------------- prompts
-def build_prompt(text, mode):
-    system = SYSTEM + ("\n\n" + LAW_RULES if mode == "law" else "")
+LAW_TEXT_INTRO = ("Relevant articles of Dubai tenancy law, quoted verbatim from the current consolidated text "
+                  "(Law 26/2007 as amended by Law 33/2008; Decree 43/2013). Base your answer on these articles - "
+                  "where they differ from what you remember, these are the current law:")
+
+
+def build_prompt(text, mode, articles=None):
+    """zero: no law | law: my rule summaries | rag/oracle: verbatim articles (retrieved / correct ones)."""
+    if mode == "law":
+        system = SYSTEM + "\n\n" + LAW_RULES
+    elif mode in ("rag", "oracle"):
+        from law_index import format_articles
+        system = SYSTEM + "\n\n" + LAW_TEXT_INTRO + "\n\n" + format_articles(articles or [])
+    else:
+        system = SYSTEM
     return system, f'Clause: "{text}"'
 
 
@@ -207,16 +224,16 @@ def load_cache():
     return cache
 
 
-def cache_key(provider, model, mode, text):
-    system, user = build_prompt(text, mode)
+def cache_key(provider, model, mode, text, articles=None):
+    system, user = build_prompt(text, mode, articles)
     return hashlib.sha1(f"{provider}|{model}|{mode}|{system}|{user}".encode()).hexdigest()
 
 
-def classify(provider, model, mode, text, cache, delay):
-    key = cache_key(provider, model, mode, text)
+def classify(provider, model, mode, text, cache, delay, articles=None):
+    key = cache_key(provider, model, mode, text, articles)
     if key in cache:
         return cache[key]["answer"]
-    system, user = build_prompt(text, mode)
+    system, user = build_prompt(text, mode, articles)
     for attempt in range(5):
         try:
             raw = call_llm(provider, model, system, user)
@@ -242,6 +259,24 @@ def classify(provider, model, mode, text, cache, delay):
     return ans
 
 
+# ----------------------------------------------------------------- law articles for rag/oracle
+def gold_of(row):
+    from law_index import gold_ids
+    return gold_ids(row.get("law_ref", ""))
+
+
+def pick_articles(args, row, text):
+    """rag: top-k retrieved for this text | oracle: the clause's correct articles | else: none."""
+    if args.mode == "rag":
+        from law_index import retrieve
+        return retrieve(text, args.k, args.retriever)
+    if args.mode == "oracle":
+        from law_index import load_articles
+        want = gold_of(row)
+        return [a for a in load_articles() if a["id"] in want]
+    return None
+
+
 # ----------------------------------------------------------------- evaluation
 def run(args):
     model, env, delay = DEFAULTS[args.provider]
@@ -255,7 +290,8 @@ def run(args):
         df = df.sample(n=min(args.limit, len(df)), random_state=0)
 
     if args.dry_run:
-        system, user = build_prompt(df.iloc[0]["text"], args.mode)
+        row = df.iloc[0]
+        system, user = build_prompt(row["text"], args.mode, pick_articles(args, row, row["text"]))
         print("=== SYSTEM ===\n" + system + "\n\n=== USER ===\n" + user)
         return
 
@@ -271,16 +307,20 @@ def run(args):
     rows = []
     print(f"{args.provider} / {model} / mode={args.mode}: {len(tests)} clauses")
     for i, (r, source, text) in enumerate(tests, 1):
-        a = classify(args.provider, model, args.mode, text, cache, delay)
+        arts = pick_articles(args, r, text)
+        a = classify(args.provider, model, args.mode, text, cache, delay, arts)
         ok = "✓" if a["label"] == r["label"] else "✗"
         print(f"{i:3d}/{len(tests)} {ok} {r['id']:7s} {source:10s} gold={r['label']:7s} pred={a['label']:7s} {a['category']}")
         rows.append({"id": r["id"], "source": source, "difficulty": r["difficulty"],
                      "gold_category": r["category"], "gold_label": r["label"], "gold_severity": r["severity"],
                      "pred_category": a["category"], "pred_label": a["label"], "pred_severity": a["severity"],
-                     "repaired": a.get("repaired", False), "reason": a["reason"]})
+                     "repaired": a.get("repaired", False), "reason": a["reason"],
+                     "articles": "|".join(x["id"] for x in arts or []),
+                     "gold_articles": "|".join(sorted(gold_of(r)))})
 
     res = pd.DataFrame(rows)
-    name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{args.mode}_{PROMPT_VERSION}"
+    mode_tag = args.mode + (f"-{args.retriever}-k{args.k}" if args.mode == "rag" else "")
+    name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{mode_tag}_{PROMPT_VERSION}"
     res.to_csv(f"results/{name}.csv", index=False)
     summarize(res, name)
 
@@ -301,6 +341,10 @@ def metrics(r):
         out[f"label_{d}"] = (s["gold_label"] == s["pred_label"]).mean() if len(s) else float("nan")
     out["invalid"] = (r["pred_label"] == "invalid").mean()
     out["repaired"] = r["repaired"].mean() if "repaired" in r else 0.0
+    if "articles" in r and r["articles"].astype(str).str.len().gt(0).any():
+        hits = [bool(set(str(a).split("|")) & set(str(g).split("|")))
+                for a, g in zip(r["articles"].fillna(""), r["gold_articles"].fillna(""))]
+        out["retrieval_hit"] = sum(hits) / len(hits)
     return out
 
 
@@ -311,7 +355,8 @@ def summarize(res, name):
         print(f"{source:10s} n={m['n']:3d} | category {m['category']:6.1%} | problem/fine {m['label']:6.1%} "
               f"(easy {m['label_easy']:.0%}, hard {m['label_hard']:.0%}) | severity {m['severity']:6.1%}"
               + (f" | invalid answers {m['invalid']:.0%}" if m["invalid"] else "")
-              + (f" | off-format answers repaired {m['repaired']:.0%}" if m["repaired"] else ""))
+              + (f" | off-format answers repaired {m['repaired']:.0%}" if m["repaired"] else "")
+              + (f" | right article given {m['retrieval_hit']:.0%}" if "retrieval_hit" in m else ""))
 
 
 def compare():
@@ -331,7 +376,8 @@ def compare():
             rows.append({"model": name, "tested_on": source, "n": m["n"],
                          "category": f"{m['category']:.1%}", "problem/fine": f"{m['label']:.1%}",
                          "pf_easy": f"{m['label_easy']:.0%}", "pf_hard": f"{m['label_hard']:.0%}",
-                         "severity": f"{m['severity']:.1%}"})
+                         "severity": f"{m['severity']:.1%}",
+                         "right_article": f"{m['retrieval_hit']:.0%}" if "retrieval_hit" in m else ""})
     table = pd.DataFrame(rows)
     print(table.to_string(index=False))
     table.to_csv("results/comparison.csv", index=False)
@@ -342,7 +388,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=list(DEFAULTS), default="gemini")
     ap.add_argument("--model", default=None)
-    ap.add_argument("--mode", choices=["zero", "law"], default="zero")
+    ap.add_argument("--mode", choices=["zero", "law", "rag", "oracle"], default="zero",
+                    help="zero: no law | law: rule summaries | rag: retrieved articles | oracle: the correct articles")
+    ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25", help="for --mode rag")
+    ap.add_argument("-k", type=int, default=3, help="articles retrieved per clause (--mode rag)")
     ap.add_argument("--bank", default=None)
     ap.add_argument("--ocr-dir", default=None)
     ap.add_argument("--limit", type=int, default=None, help="only N clauses (quick test)")

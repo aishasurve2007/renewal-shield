@@ -1,0 +1,91 @@
+id,source,difficulty,gold_category,gold_label,gold_severity,pred_category,pred_label,pred_severity,repaired,reason,articles,gold_articles
+RI-P01,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,False,Automatic 10% increase may exceed legal limits based on market rental value.,L26-9|D43-1,D43-1|L26-9
+RI-P02,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,False,"Rent increase must comply with RERA limits, not solely at landlord's discretion.",L26-9|D43-1,D43-1|L26-9
+RI-P03,clean_text,easy,rent_increase,problem,red,rent_increase,fine,none,False,The clause specifies the rent amount for the second year clearly and is acceptable.,L26-9|D43-1,D43-1|L26-9
+RI-P04,clean_text,hard,rent_increase,problem,red,rent_increase,problem,yellow,False,Clause allows rent increase up to 15% without reference to the legal limits based on market rental rate comparison.,L26-9|D43-1,D43-1|L26-9
+RI-P05,clean_text,hard,rent_increase,problem,red,rent_increase,problem,red,False,Clause allows rent increase without regard to legal limits and tenant's right to dispute.,L26-9|D43-1,D43-1|L26-9
+RI-F01,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Clause aligns with Dubai law requiring rent increases to follow the official rental index.,L26-9|D43-1,D43-1|L26-9
+RI-F02,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Fixed rent during contract is allowed and protects tenant from increases.,L26-9|D43-1,D43-1|L26-9
+RI-F03,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with Dubai law by referencing applicable laws for rent increases.,L26-9|D43-1,D43-1|L26-9
+RI-F04,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with RERA rental index limits on rent increase.,L26-9|D43-1,D43-1|L26-9
+RI-F05,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,False,"Clause allows rent increase only if permitted by rental index and with legal notice, compliant with law.",L26-9|D43-1,D43-1|L26-9
+NP-P01,clean_text,easy,notice_period,problem,yellow,notice_period,problem,red,False,Notice period for amending contract terms must be at least 90 days by law.,L26-14,L26-14
+NP-P02,clean_text,easy,notice_period,problem,yellow,notice_period,problem,red,False,Notice period for rent change must be at least 90 days before contract expiry by law.,L26-14,L26-14
+NP-P03,clean_text,easy,notice_period,problem,red,rent_increase,problem,red,False,"Landlord must notify rent changes at least 90 days before contract expiry, not at any time.",L26-14,L26-14
+NP-P04,clean_text,hard,notice_period,problem,yellow,notice_period,problem,red,False,Notice period is less than the legally required 90 days.,L26-14,L26-14
+NP-P05,clean_text,hard,notice_period,problem,red,notice_period,problem,red,False,The clause allows renewal terms to apply without 90 days' prior notice as required by law.,L26-14,L26-14
+NP-F01,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,Clause complies with the legal requirement of 90 days notice before contract expiry.,L26-14,L26-14
+NP-F02,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,Notice period of three months matches the legal requirement of ninety days.,L26-14,L26-14
+NP-F03,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,Clause correctly references the legal 90-day notice period for amendments or non-renewal.,L26-14,L26-14
+NP-F04,clean_text,hard,notice_period,fine,none,notice_period,problem,yellow,False,Tenant's notice period is less than the 90 days required by law.,L26-14,L26-14
+NP-F05,clean_text,hard,notice_period,fine,none,notice_period,fine,none,False,"The clause requires more than the minimum 90 days' notice, which is acceptable.",L26-14,L26-14
+LT-P01,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Landlord must give at least 12 months' notice for eviction after contract expiry.,L26-25,L26-25
+LT-P02,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Law 26/2007 Article 28 protects tenant's right to continue occupancy despite property sale.,L26-25|L26-28,L26-25|L26-28
+LT-P03,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Landlord must give at least 12 months' notice for eviction at contract end per Dubai law.,L26-25,L26-25
+LT-P04,clean_text,hard,landlord_termination,problem,red,landlord_termination,problem,red,False,Notice must be served through a Notary Public or by registered mail at least 12 months before eviction for personal use.,L26-25,L26-25
+LT-P05,clean_text,hard,landlord_termination,problem,red,landlord_termination,problem,red,False,"Landlord must provide 12 months' notice and valid reasons for eviction, not just renovation decision.",L26-25,L26-25
+LT-F01,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with legal eviction grounds specified in Article 25.,L26-25,L26-25
+LT-F02,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with Dubai tenancy law protecting tenant's rights upon property sale.,L26-28,L26-28
+LT-F03,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause complies with the legal requirement for eviction notice upon expiry.,L26-25,L26-25
+LT-F04,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with legal eviction grounds for non-payment after 30 days' notice.,L26-25,L26-25
+LT-F05,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with legal grounds for eviction due to unauthorized subletting.,L26-25,L26-25
+ET-P01,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,Tenant cannot be forced to pay full remaining rent if terminating early under Dubai tenancy law.,L26-7,L26-7
+ET-P02,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,Unilateral early termination penalties are not allowed under Dubai tenancy law.,L26-7,L26-7
+ET-P03,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,"Clause unilaterally penalizes tenant for early vacation, conflicting with mutual consent termination requirement.",L26-7,L26-7
+ET-P04,clean_text,hard,early_termination,problem,yellow,early_termination,problem,yellow,False,Tenant may be unfairly liable for losses beyond actual damages until re-letting.,L26-7,L26-7
+ET-P05,clean_text,hard,early_termination,problem,yellow,early_termination,problem,red,False,"The law allows termination only by mutual consent or as provided, so an absolute ban on early termination is unlawful.",L26-7,L26-7
+ET-F01,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,Tenant early termination with notice and penalty is allowed by law.,L26-7,L26-7
+ET-F02,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,"Clause sets clear notice and penalty terms for tenant early termination, which is allowed by mutual consent or contract terms.",L26-7,L26-7
+ET-F03,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,Clause fairly addresses early termination and penalty deduction without conflicting with law.,L26-7,L26-7
+ET-F04,clean_text,hard,early_termination,fine,none,early_termination,fine,none,False,"Allows early termination with notice and no penalty, which is tenant-friendly and lawful.",L26-7,L26-7
+ET-F05,clean_text,hard,early_termination,fine,none,early_termination,fine,none,False,"Allows early termination without penalty if tenant finds acceptable replacement, which is lawful and tenant-friendly.",L26-7,L26-7
+MA-P01,clean_text,easy,maintenance,problem,yellow,maintenance,problem,red,False,Clause conflicts with law requiring landlord to maintain and repair defects affecting tenant's use.,L26-16,L26-16
+MA-P02,clean_text,easy,maintenance,problem,yellow,maintenance,problem,red,False,Tenant bearing all repair costs conflicts with landlord's legal responsibility for maintenance.,L26-16,L26-16
+MA-P03,clean_text,easy,maintenance,problem,yellow,maintenance,problem,red,False,Clause contradicts law requiring landlord responsibility for maintenance affecting tenant's use.,L26-16,L26-16
+MA-P04,clean_text,hard,maintenance,problem,yellow,maintenance,problem,red,False,"Clause unfairly shifts all repair responsibility to tenant, conflicting with landlord's legal maintenance obligations.",L26-16,L26-16
+MA-P05,clean_text,hard,maintenance,problem,yellow,maintenance,problem,red,False,Tenant cannot waive landlord's legal responsibility for maintenance under Dubai law.,L26-16,L26-16
+MA-F01,clean_text,easy,maintenance,fine,none,maintenance,fine,none,False,Clause reasonably allocates maintenance responsibilities consistent with law.,L26-16,L26-16
+MA-F02,clean_text,easy,maintenance,fine,none,maintenance,problem,yellow,False,Tenant bearing minor repair costs is legal but may be unfavorable and worth negotiating.,L26-16,L26-16
+MA-F03,clean_text,easy,maintenance,fine,none,maintenance,fine,none,False,"Clause assigns maintenance responsibility to landlord, consistent with law.",L26-16,L26-16
+MA-F04,clean_text,hard,maintenance,fine,none,maintenance,fine,none,False,Tenant responsibility for damage caused by their own misuse is lawful and reasonable.,L26-16,L26-16
+MA-F05,clean_text,hard,maintenance,fine,none,maintenance,fine,none,False,Tenant responsibility for consumables is reasonable and common.,L26-16,L26-16
+DE-P01,clean_text,easy,deposit,problem,red,deposit,problem,red,False,Security deposit must be refundable according to Dubai tenancy law.,L26-20|L26-21,L26-20|L26-21
+DE-P02,clean_text,easy,deposit,problem,yellow,deposit,problem,red,False,Landlord cannot deduct at sole discretion without tenant agreement or tribunal decision.,L26-20|L26-21,L26-20|L26-21
+DE-P03,clean_text,easy,deposit,problem,yellow,deposit,problem,red,False,"Refund timing must be upon lease expiry, not at landlord's convenience.",L26-20|L26-21,L26-20|L26-21
+DE-P04,clean_text,hard,deposit,problem,yellow,deposit,problem,red,False,Deducting a fixed charge regardless of premises condition conflicts with the law requiring deposit deductions only for actual damage beyond normal wear and tear.,L26-20|L26-21,L26-20|L26-21
+DE-P05,clean_text,hard,deposit,problem,red,deposit,problem,red,False,Full forfeiture of deposit for any breach is not allowed under Dubai tenancy law.,L26-20|L26-21,L26-20|L26-21
+DE-F01,clean_text,easy,deposit,fine,none,deposit,fine,none,False,The clause complies with the law by refunding the deposit minus damage costs after tenancy ends.,L26-20|L26-21,L26-20|L26-21
+DE-F02,clean_text,easy,deposit,fine,none,deposit,fine,none,False,"Clause ensures transparency in deposit deductions, aligning with good practice.",L26-20|L26-21,L26-20|L26-21
+DE-F03,clean_text,easy,deposit,fine,none,deposit,fine,none,False,Deposit return upon handover and bill settlement aligns with standard practice and law.,L26-20|L26-21,L26-20|L26-21
+DE-F04,clean_text,hard,deposit,fine,none,deposit,fine,none,False,Deducting unpaid utility bills from the deposit is allowed under the law.,L26-20|L26-21,L26-20|L26-21
+DE-F05,clean_text,hard,deposit,fine,none,deposit,fine,none,False,Clause aligns with law exempting normal wear and tear from deposit deductions.,L26-20|L26-21,L26-20|L26-21
+RI-P02,ocr_photo,easy,rent_increase,problem,red,rent_increase,problem,red,False,"Rent increase must comply with RERA limits, not solely at landlord's discretion.",L26-9|D43-1,D43-1|L26-9
+RI-P04,ocr_photo,hard,rent_increase,problem,red,rent_increase,problem,red,False,Clause allows up to 15% increase without reference to actual market conditions or legal limits.,L26-9|D43-1,D43-1|L26-9
+RI-F01,ocr_photo,easy,rent_increase,fine,none,rent_increase,fine,none,False,Clause aligns with the legal requirement to follow the rental index for rent increases.,L26-9|D43-1,D43-1|L26-9
+RI-F04,ocr_photo,hard,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with RERA rental index limits on rent increase.,L26-9|D43-1,D43-1|L26-9
+RI-F05,ocr_photo,hard,rent_increase,fine,none,rent_increase,fine,none,False,"Clause allows rent increase only if permitted by rental index and with legal notice, compliant with law.",L26-9|D43-1,D43-1|L26-9
+NP-P02,ocr_photo,easy,notice_period,problem,yellow,notice_period,problem,red,False,Notice period for rent change must be at least 90 days before contract expiry by law.,L26-14,L26-14
+NP-P04,ocr_photo,hard,notice_period,problem,yellow,notice_period,problem,red,False,"Notice period is 60 days, less than the legally required 90 days.",L26-14,L26-14
+NP-F01,ocr_photo,easy,notice_period,fine,none,notice_period,fine,none,False,Clause complies with the legal requirement of 90 days notice before contract expiry.,L26-14,L26-14
+NP-F05,ocr_photo,hard,notice_period,fine,none,notice_period,fine,none,False,"The clause requires more than the minimum 90 days' notice, which is acceptable.",L26-14,L26-14
+LT-P01,ocr_photo,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Landlord must give at least 12 months' notice for eviction after contract expiry.,L26-25,L26-25
+LT-P02,ocr_photo,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Law requires tenant eviction notice of at least 12 months if property is sold.,L26-25|L26-28,L26-25|L26-28
+LT-P05,ocr_photo,hard,landlord_termination,problem,red,landlord_termination,problem,red,False,"Landlord must provide 12 months' notice and valid reasons for eviction, not just renovation decision.",L26-25,L26-25
+LT-F02,ocr_photo,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with Dubai tenancy law protecting tenant's rights upon property sale.,L26-28,L26-28
+LT-F03,ocr_photo,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause complies with the legal requirement for eviction notice timing and method.,L26-25,L26-25
+LT-F04,ocr_photo,hard,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with legal eviction grounds for non-payment after 30 days' notice.,L26-25,L26-25
+ET-P03,ocr_photo,easy,early_termination,problem,yellow,early_termination,problem,red,False,"Clause unilaterally penalizes tenant for early vacation, conflicting with mutual consent termination requirement.",L26-7,L26-7
+ET-P04,ocr_photo,hard,early_termination,problem,yellow,early_termination,problem,yellow,False,Tenant may be unfairly liable for losses beyond actual damages until re-letting.,L26-7,L26-7
+ET-F02,ocr_photo,easy,early_termination,fine,none,early_termination,fine,none,False,"Clause sets clear notice and penalty terms for tenant early termination, which is allowed by mutual consent or contract terms.",L26-7,L26-7
+ET-F03,ocr_photo,easy,early_termination,fine,none,early_termination,problem,yellow,True,Deducting penalty from unused cheques is legal but may be unfavorable to tenant.,L26-7,L26-7
+MA-P01,ocr_photo,easy,maintenance,problem,yellow,maintenance,problem,red,False,Tenant cannot be responsible for all maintenance and repairs under Dubai law.,L26-16,L26-16
+MA-P04,ocr_photo,hard,maintenance,problem,yellow,maintenance,problem,red,False,"Clause unfairly shifts all repair responsibility to tenant, conflicting with landlord's legal maintenance obligations.",L26-16,L26-16
+MA-F01,ocr_photo,easy,maintenance,fine,none,maintenance,fine,none,False,Clause reasonably allocates maintenance responsibilities consistent with law.,L26-16,L26-16
+MA-F02,ocr_photo,easy,maintenance,fine,none,maintenance,fine,none,False,Tenant responsible for minor repairs is acceptable under the law.,L26-16,L26-16
+DE-P01,ocr_photo,easy,deposit,problem,red,deposit,problem,red,False,Security deposit must be refundable according to Dubai tenancy law.,L26-20|L26-21,L26-20|L26-21
+DE-P02,ocr_photo,easy,deposit,problem,yellow,deposit,problem,red,False,Landlord cannot deduct arbitrarily; deductions must be justified and disputes referred to Tribunal.,L26-20|L26-21,L26-20|L26-21
+DE-P04,ocr_photo,hard,deposit,problem,yellow,deposit,problem,red,False,Deducting a fixed charge regardless of property condition conflicts with the law requiring deposit deductions only for actual damage beyond normal wear and tear.,L26-20|L26-21,L26-20|L26-21
+DE-F01,ocr_photo,easy,deposit,fine,none,deposit,fine,none,False,The clause complies with the law by refunding the deposit minus damage costs after tenancy ends.,L26-20|L26-21,L26-20|L26-21
+DE-F03,ocr_photo,easy,deposit,fine,none,deposit,fine,none,False,Deposit return upon handover and bill settlement aligns with standard practice and law.,L26-20|L26-21,L26-20|L26-21
+DE-F04,ocr_photo,hard,deposit,fine,none,deposit,fine,none,False,Deducting unpaid utility bills from the deposit is allowed under the law.,L26-20|L26-21,L26-20|L26-21
+DE-F05,ocr_photo,hard,deposit,fine,none,deposit,problem,red,False,Clause contradicts law which excludes normal wear and tear from deposit deductions.,L26-20|L26-21,L26-20|L26-21
