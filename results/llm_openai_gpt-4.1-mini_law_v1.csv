@@ -1,0 +1,91 @@
+id,source,difficulty,gold_category,gold_label,gold_severity,pred_category,pred_label,pred_severity,reason
+RI-P01,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,Fixed automatic 10% increase conflicts with the RERA rental index cap.
+RI-P02,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,Rent increase at landlord's sole discretion conflicts with the law.
+RI-P03,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,Fixing the rent increase in advance conflicts with the law.
+RI-P04,clean_text,hard,rent_increase,problem,red,rent_increase,problem,red,Pre-agreed rent increase percentage conflicts with the law's rental index cap.
+RI-P05,clean_text,hard,rent_increase,problem,red,rent_increase,problem,red,Fixing rent increase by landlord's market rates and banning dispute conflicts with the law.
+RI-F01,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,Rent increase follows the official rental index as required by law.
+RI-F02,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,Fixed rent during the contract term is legal and favorable to the tenant.
+RI-F03,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,Clause complies with law by referencing applicable Dubai rent increase regulations.
+RI-F04,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,Rent increase capped by RERA rental index as per law.
+RI-F05,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,Clause follows the rental index and legal notice requirements.
+NP-P01,clean_text,easy,notice_period,problem,yellow,notice_period,problem,red,Notice period for changes is less than the required 90 days.
+NP-P02,clean_text,easy,notice_period,problem,yellow,notice_period,problem,red,Notice period for rent changes is less than the legally required 90 days.
+NP-P03,clean_text,easy,notice_period,problem,red,notice_period,problem,red,"No minimum 90-day notice before rent or term changes, allowing changes at any time."
+NP-P04,clean_text,hard,notice_period,problem,yellow,notice_period,fine,none,"Notice period is less than the 90 days required by law, which is legal but unfavourable to the tenant."
+NP-P05,clean_text,hard,notice_period,problem,red,notice_period,problem,red,No prior notice of renewal terms breaches the required 90-day notice period.
+NP-F01,clean_text,easy,notice_period,fine,none,notice_period,fine,none,Notice period of 90 days before expiry complies with legal requirements.
+NP-F02,clean_text,easy,notice_period,fine,none,notice_period,fine,none,Notice period of three months meets the legal requirement.
+NP-F03,clean_text,easy,notice_period,fine,none,notice_period,fine,none,Clause follows the law requiring notice in accordance with Article 14.
+NP-F04,clean_text,hard,notice_period,fine,none,notice_period,fine,none,"Tenant must give 60 days notice, which is less than the 90 days required for landlord changes, but acceptable for tenant notice."
+NP-F05,clean_text,hard,notice_period,fine,none,notice_period,fine,none,Notice period of 120 days exceeds the legal minimum of 90 days.
+LT-P01,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,"Landlord cannot terminate the contract at any time with only two months' notice, violating legal grounds and notice requirements."
+LT-P02,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,Sale of property does not terminate a fixed-term lease under Dubai law.
+LT-P03,clean_text,easy,landlord_termination,problem,red,landlord_termination,fine,none,Three months' notice at contract end is legal and standard.
+LT-P04,clean_text,hard,landlord_termination,problem,red,landlord_termination,fine,none,Notice period and grounds for termination comply with the law.
+LT-P05,clean_text,hard,landlord_termination,problem,red,landlord_termination,problem,red,"Termination for renovation requires proper notice and conditions under the law, not automatic termination."
+LT-F01,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,Clause correctly limits eviction to lawful grounds under Article 25.
+LT-F02,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,Sale does not terminate the lease and contract remains valid with new owner as per law.
+LT-F03,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,The clause complies with the law requiring 12 months' notice via notary or registered mail for eviction at expiry.
+LT-F04,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,Termination for unpaid rent after 30 days' written notice is allowed by law.
+LT-F05,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,Termination for unauthorized subletting is allowed by law.
+ET-P01,clean_text,easy,early_termination,problem,yellow,early_termination,problem,yellow,"Tenant must pay full remaining rent on early termination, which is unfavourable and should be negotiated."
+ET-P02,clean_text,easy,early_termination,problem,yellow,early_termination,problem,yellow,Penalty of four months' rent and forfeiture of deposit is excessive and unfavourable to tenant.
+ET-P03,clean_text,easy,early_termination,problem,yellow,early_termination,problem,yellow,Full forfeiture of all post-dated cheques on early exit is legal but unfavourable and worth negotiating.
+ET-P04,clean_text,hard,early_termination,problem,yellow,early_termination,problem,yellow,"Tenant liable for all losses until re-let is legal but unfavourable, worth negotiating."
+ET-P05,clean_text,hard,early_termination,problem,yellow,early_termination,problem,yellow,Prohibiting any early termination is legal but unfavourable and worth negotiating.
+ET-F01,clean_text,easy,early_termination,fine,none,early_termination,fine,none,Two months' notice and penalty is a normal and acceptable early termination clause.
+ET-F02,clean_text,easy,early_termination,fine,none,early_termination,fine,none,Penalty and notice period for early termination are reasonable and common.
+ET-F03,clean_text,easy,early_termination,fine,none,early_termination,fine,none,Deducting an agreed penalty and returning unused cheques is a normal and fair early termination clause.
+ET-F04,clean_text,hard,early_termination,fine,none,early_termination,fine,none,Early termination allowed with 60 days' notice and no penalty for relocation outside UAE is favorable to tenant.
+ET-F05,clean_text,hard,early_termination,fine,none,early_termination,fine,none,"Allows early termination without penalty if replacement tenant is found, which is favorable to tenant."
+MA-P01,clean_text,easy,maintenance,problem,yellow,maintenance,problem,yellow,Tenant responsible for all maintenance including major repairs is unfavorable and should be negotiated.
+MA-P02,clean_text,easy,maintenance,problem,yellow,maintenance,invalid,yellow,Tenant bearing all repairs including major and structural is unfavorable and should be negotiated.
+MA-P03,clean_text,easy,maintenance,problem,yellow,maintenance,invalid,yellow,Landlord waiving responsibility for defects after handover is unfavorable and should be negotiated.
+MA-P04,clean_text,hard,maintenance,problem,yellow,maintenance,problem,yellow,"Tenant responsible for all repairs regardless of cost, which is unfavorable and should be negotiated."
+MA-P05,clean_text,hard,maintenance,problem,yellow,maintenance,invalid,yellow,"An 'as is' waiver limits tenant claims and is unfavorable, worth negotiating."
+MA-F01,clean_text,easy,maintenance,fine,none,maintenance,fine,none,Tenant responsible for minor maintenance is legal but may be unfavourable.
+MA-F02,clean_text,easy,maintenance,fine,none,maintenance,fine,none,"Tenant responsible for minor repairs up to a reasonable limit, landlord covers major repairs."
+MA-F03,clean_text,easy,maintenance,fine,none,maintenance,fine,none,Landlord responsibility for major systems is appropriate and legal.
+MA-F04,clean_text,hard,maintenance,fine,none,maintenance,fine,none,"Tenant responsible for damage they caused, which is reasonable."
+MA-F05,clean_text,hard,maintenance,fine,none,maintenance,fine,none,Tenant responsible for minor repairs and consumables is legal and common.
+DE-P01,clean_text,easy,deposit,problem,red,deposit,problem,red,Non-refundable deposit conflicts with Dubai tenancy law.
+DE-P02,clean_text,easy,deposit,problem,yellow,deposit,problem,yellow,Deductions at landlord's sole discretion without proof are unfavourable to tenant.
+DE-P03,clean_text,easy,deposit,problem,yellow,deposit,problem,yellow,"Refund timing depends solely on landlord's convenience, which is unfavorable for the tenant."
+DE-P04,clean_text,hard,deposit,problem,yellow,deposit,problem,red,Fixed deduction regardless of property condition conflicts with law.
+DE-P05,clean_text,hard,deposit,problem,red,deposit,problem,red,Full forfeiture of deposit for any breach conflicts with law.
+DE-F01,clean_text,easy,deposit,fine,none,deposit,fine,none,Refund within 30 days minus damage beyond normal wear and tear is compliant and fair.
+DE-F02,clean_text,easy,deposit,fine,none,deposit,fine,none,"Deductions require proof with invoices or receipts, which is fair and legal."
+DE-F03,clean_text,easy,deposit,fine,none,deposit,fine,none,"Deposit refund is conditional on key handover and bill settlement, which is reasonable and lawful."
+DE-F04,clean_text,hard,deposit,fine,none,deposit,fine,none,Deductions for unpaid bills from the deposit are allowed with proof.
+DE-F05,clean_text,hard,deposit,fine,none,deposit,fine,none,Excluding normal wear and tear from deductions is standard and fair.
+RI-P02,ocr_photo,easy,rent_increase,problem,red,rent_increase,problem,red,Rent increase at landlord's sole discretion conflicts with the law.
+RI-P04,ocr_photo,hard,rent_increase,problem,red,rent_increase,problem,red,Fixing a rent increase percentage in advance conflicts with the law.
+RI-F01,ocr_photo,easy,rent_increase,fine,none,rent_increase,fine,none,Rent increase follows the official rental index as required by law.
+RI-F04,ocr_photo,hard,rent_increase,fine,none,rent_increase,fine,none,Rent increase capped by RERA rental index as required by law.
+RI-F05,ocr_photo,hard,rent_increase,fine,none,rent_increase,fine,none,Clause allows increase only if permitted by rental index and follows notice requirements.
+NP-P02,ocr_photo,easy,notice_period,problem,yellow,notice_period,problem,red,Notice period for rent changes is less than the legally required 90 days.
+NP-P04,ocr_photo,hard,notice_period,problem,yellow,notice_period,fine,none,"Notice period is less than the 90 days required by law, which is legal but unfavourable for the tenant."
+NP-F01,ocr_photo,easy,notice_period,fine,none,notice_period,fine,none,Notice period of 90 days before expiry complies with legal requirements.
+NP-F05,ocr_photo,hard,notice_period,fine,none,notice_period,fine,none,Notice period of 120 days exceeds the legal minimum of 90 days.
+LT-P01,ocr_photo,easy,landlord_termination,problem,red,landlord_termination,problem,red,"Landlord cannot terminate the contract at any time with only two months' notice, violating legal grounds and notice requirements."
+LT-P02,ocr_photo,easy,landlord_termination,problem,red,landlord_termination,problem,red,Sale of property does not terminate a fixed-term lease under Dubai law.
+LT-P05,ocr_photo,hard,landlord_termination,problem,red,landlord_termination,problem,red,"Termination for renovation requires proper notice and conditions under the law, not automatic termination."
+LT-F02,ocr_photo,easy,landlord_termination,fine,none,landlord_termination,fine,none,Sale does not terminate the lease and contract remains valid with new owner as per law.
+LT-F03,ocr_photo,easy,landlord_termination,fine,none,landlord_termination,fine,none,The clause complies with the 12 months' notice requirement and proper service method for eviction upon expiry.
+LT-F04,ocr_photo,hard,landlord_termination,fine,none,landlord_termination,fine,none,Termination for unpaid rent after 30 days' written notice is allowed by law.
+ET-P03,ocr_photo,easy,early_termination,problem,yellow,early_termination,problem,yellow,Full forfeiture of all post-dated cheques on early exit is legal but unfavourable and worth negotiating.
+ET-P04,ocr_photo,hard,early_termination,problem,yellow,early_termination,problem,yellow,"Tenant liable for all losses until re-let is legal but unfavourable, worth negotiating."
+ET-F02,ocr_photo,easy,early_termination,fine,none,early_termination,fine,none,Penalty and notice period for early termination are reasonable and common.
+ET-F03,ocr_photo,easy,early_termination,fine,none,early_termination,fine,none,Penalty deduction from unused cheques on early termination is normal and acceptable.
+MA-P01,ocr_photo,easy,maintenance,problem,yellow,maintenance,invalid,red,Tenant responsible for all repairs regardless of nature conflicts with landlord's legal maintenance obligations.
+MA-P04,ocr_photo,hard,maintenance,problem,yellow,maintenance,problem,yellow,"Tenant responsible for all repairs regardless of cost, which is unfavorable and should be negotiated."
+MA-F01,ocr_photo,easy,maintenance,fine,none,maintenance,fine,none,Tenant responsible for minor maintenance is legal but may be unfavourable.
+MA-F02,ocr_photo,easy,maintenance,fine,none,maintenance,fine,none,Tenant responsible for minor repairs up to a reasonable cost is legal and common.
+DE-P01,ocr_photo,easy,deposit,problem,red,deposit,problem,red,Non-refundable deposit conflicts with Dubai tenancy law.
+DE-P02,ocr_photo,easy,deposit,problem,yellow,deposit,problem,yellow,Deductions at landlord's sole discretion without proof are unfavourable and should be negotiated.
+DE-P04,ocr_photo,hard,deposit,problem,yellow,deposit,problem,red,Fixed deduction regardless of property condition conflicts with law.
+DE-F01,ocr_photo,easy,deposit,fine,none,deposit,fine,none,Refund within 30 days minus damage beyond normal wear and tear is compliant and fair.
+DE-F03,ocr_photo,easy,deposit,fine,none,deposit,fine,none,"Deposit refund is conditional on key handover and bill settlement, which is reasonable and lawful."
+DE-F04,ocr_photo,hard,deposit,fine,none,deposit,fine,none,Deductions for unpaid bills from the deposit are allowed with proof.
+DE-F05,ocr_photo,hard,deposit,fine,none,deposit,problem,red,Deducting normal wear and tear from the deposit conflicts with the law.

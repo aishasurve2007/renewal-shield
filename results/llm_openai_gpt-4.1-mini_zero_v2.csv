@@ -1,0 +1,61 @@
+id,source,difficulty,gold_category,gold_label,gold_severity,pred_category,pred_label,pred_severity,repaired,reason
+RI-P01,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,False,Automatic 10% rent increase on renewal likely violates Dubai rent increase regulations.
+RI-P02,clean_text,easy,rent_increase,problem,red,rent_increase,problem,red,False,Landlord cannot increase rent at sole discretion without limits under Dubai law.
+RI-P03,clean_text,easy,rent_increase,problem,red,rent_increase,fine,none,False,The clause clearly states the rent amount for the second year agreed in advance.
+RI-P04,clean_text,hard,rent_increase,problem,red,rent_increase,problem,red,False,Allows rent increase up to 15% without landlord's obligation to follow Dubai rent increase regulations.
+RI-P05,clean_text,hard,rent_increase,problem,red,rent_increase,problem,red,False,"Tenant cannot dispute rent increases, which is unfair and likely illegal."
+RI-F01,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Rent increase tied to official Dubai Land Department index is standard and lawful.
+RI-F02,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Rent stability during the contract is favorable to the tenant.
+RI-F03,clean_text,easy,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with Dubai laws on rent increases.
+RI-F04,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with RERA rental index limits on rent increase.
+RI-F05,clean_text,hard,rent_increase,fine,none,rent_increase,fine,none,False,Clause complies with legal requirements for rent increase and notice.
+NP-P01,clean_text,easy,notice_period,problem,yellow,notice_period,problem,yellow,False,30 days' notice before expiry is shorter than the legally required 90 days in Dubai.
+NP-P02,clean_text,easy,notice_period,problem,yellow,notice_period,fine,none,False,One month notice before contract end for rent change is legally acceptable.
+NP-P03,clean_text,easy,notice_period,problem,red,rent_increase,problem,red,False,Landlord cannot revise rent or terms at any time without notice period as per Dubai tenancy law.
+NP-P04,clean_text,hard,notice_period,problem,yellow,notice_period,fine,none,False,60 days' notice before expiry is standard and reasonable.
+NP-P05,clean_text,hard,notice_period,problem,red,notice_period,problem,yellow,False,Tenant may be bound by renewal terms without prior notice or agreement.
+NP-F01,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,The 90-day notice period for amendments is reasonable and standard.
+NP-F02,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,Three months' notice for rent change is compliant with Dubai tenancy laws.
+NP-F03,clean_text,easy,notice_period,fine,none,notice_period,fine,none,False,Clause complies with the legal requirement for notice period.
+NP-F04,clean_text,hard,notice_period,fine,none,notice_period,fine,none,False,60 days notice for non-renewal is standard and reasonable.
+NP-F05,clean_text,hard,notice_period,fine,none,notice_period,fine,none,False,"120 days' notice exceeds the minimum legal requirement, favoring the tenant."
+LT-P01,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Landlord termination without valid reason and only notice is not allowed under Dubai tenancy law.
+LT-P02,clean_text,easy,landlord_termination,problem,red,landlord_termination,problem,red,False,Automatic termination upon sale with only 30 days to vacate likely conflicts with tenant protection laws.
+LT-P03,clean_text,easy,landlord_termination,problem,red,landlord_termination,fine,none,False,Three months' notice for landlord termination is standard and lawful in Dubai.
+LT-P04,clean_text,hard,landlord_termination,problem,red,landlord_termination,fine,none,False,The landlord's right to recover premises with 90 days' notice is standard and lawful.
+LT-P05,clean_text,hard,landlord_termination,problem,red,landlord_termination,problem,red,False,Allows landlord to terminate contract unilaterally for renovations without tenant protections.
+LT-F01,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,Clause aligns with Dubai tenancy law eviction rules.
+LT-F02,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,The clause protects tenant rights by binding the new owner to the existing contract.
+LT-F03,clean_text,easy,landlord_termination,fine,none,landlord_termination,fine,none,False,"The clause requires a 12-month eviction notice with proper service, which complies with Dubai tenancy laws."
+LT-F04,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,False,"Allows landlord to terminate after 30 days of unpaid rent notification, which is reasonable."
+LT-F05,clean_text,hard,landlord_termination,fine,none,landlord_termination,fine,none,False,"Allows landlord to terminate if tenant sublets without consent, which is standard."
+ET-P01,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,"Tenant must pay full remaining rent upon early termination, which is likely unlawful and unfair."
+ET-P02,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,Penalty of four months' rent is excessive and likely violates Dubai tenancy laws.
+ET-P03,clean_text,easy,early_termination,problem,yellow,early_termination,problem,red,False,Non-refundable post-dated cheques on early vacancy likely violate tenant protection laws.
+ET-P04,clean_text,hard,early_termination,problem,yellow,early_termination,problem,yellow,False,"Tenant may be liable for indefinite loss of rent until re-letting, which is unfavorable."
+ET-P05,clean_text,hard,early_termination,problem,yellow,early_termination,problem,red,False,Tenant must have the right to early termination under Dubai law.
+ET-F01,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,Clause allows early termination with reasonable notice and penalty.
+ET-F02,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,The clause reasonably allows early termination with notice and a penalty.
+ET-F03,clean_text,easy,early_termination,fine,none,early_termination,fine,none,False,Clause fairly addresses return of unused cheques minus agreed penalty upon early termination.
+ET-F04,clean_text,hard,early_termination,fine,none,early_termination,fine,none,False,Allows early termination without penalty with proper notice for relocation outside UAE.
+ET-F05,clean_text,hard,early_termination,fine,none,early_termination,fine,none,False,Allows early termination without penalty if a replacement tenant is found and accepted.
+MA-P01,clean_text,easy,maintenance,problem,yellow,maintenance,problem,red,False,Tenant cannot be responsible for all maintenance and repairs under Dubai law.
+MA-P02,clean_text,easy,maintenance,problem,yellow,maintenance,problem,red,False,Tenant bearing all repair costs including structural works is against Dubai tenancy law.
+MA-P03,clean_text,easy,maintenance,problem,yellow,maintenance,problem,yellow,False,Landlord denying all liability for defects after handover is unfavorable to tenant.
+MA-P04,clean_text,hard,maintenance,problem,yellow,maintenance,problem,red,False,"Tenant is unfairly responsible for all repairs regardless of cost, which is against typical tenancy laws."
+MA-P05,clean_text,hard,maintenance,problem,yellow,maintenance,problem,red,False,Tenant waiving claims on premises condition may violate tenant rights for habitable living conditions.
+MA-F01,clean_text,easy,maintenance,fine,none,maintenance,fine,none,False,Clear division of maintenance responsibilities between landlord and tenant.
+MA-F02,clean_text,easy,maintenance,fine,none,maintenance,fine,none,False,"Tenant responsible for minor repairs up to AED 500, which is reasonable."
+MA-F03,clean_text,easy,maintenance,fine,none,maintenance,fine,none,False,"The clause clearly assigns maintenance responsibility to the landlord, which is standard and fair."
+MA-F04,clean_text,hard,maintenance,fine,none,maintenance,fine,none,False,Tenant responsibility for damage due to misuse is standard and fair.
+MA-F05,clean_text,hard,maintenance,fine,none,maintenance,fine,none,False,Tenant responsibility for minor consumables is standard and reasonable.
+DE-P01,clean_text,easy,deposit,problem,red,deposit,problem,red,False,Security deposits must be refundable under Dubai tenancy law.
+DE-P02,clean_text,easy,deposit,problem,yellow,deposit,problem,red,False,Landlord cannot deduct arbitrarily without tenant agreement or proof.
+DE-P03,clean_text,easy,deposit,problem,yellow,deposit,problem,red,False,"Refund timing should be defined and fair, not at landlord's convenience."
+DE-P04,clean_text,hard,deposit,problem,yellow,deposit,problem,red,False,Deducting a fixed charge regardless of property condition is unfair and likely illegal.
+DE-P05,clean_text,hard,deposit,problem,red,deposit,problem,red,False,Full deposit forfeiture for any minor breach is likely unlawful and unfair.
+DE-F01,clean_text,easy,deposit,fine,none,deposit,fine,none,False,Deposit refund within 30 days minus damage costs is standard and fair.
+DE-F02,clean_text,easy,deposit,fine,none,deposit,fine,none,False,Protects tenant by requiring proof for deposit deductions.
+DE-F03,clean_text,easy,deposit,fine,none,deposit,fine,none,False,"Deposit return is conditional on key handover and bill settlement, which is standard practice."
+DE-F04,clean_text,hard,deposit,fine,none,deposit,fine,none,False,"Landlord can deduct unpaid utility bills from the deposit, which is standard practice."
+DE-F05,clean_text,hard,deposit,fine,none,deposit,fine,none,False,Excluding normal wear and tear from deductions is standard and fair.

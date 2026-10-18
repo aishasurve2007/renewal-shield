@@ -1,0 +1,10 @@
+model,tested_on,n,category,problem/fine,pf_easy,pf_hard,severity
+baseline_tfidf (leave-one-out),clean_text,60,78.3%,46.7%,42%,54%,36.7%
+baseline_tfidf (leave-one-out),ocr_photo,42,97.6%,42.9%,42%,44%,33.3%
+llm_gemini_gemini-3.8-flash_zero,clean_text,5,100.0%,100.0%,100%,100%,80.0%
+llm_openai_gpt-4.1-mini_law_v1,clean_text,60,100.0%,90.0%,92%,88%,90.0%
+llm_openai_gpt-4.1-mini_law_v1,ocr_photo,30,100.0%,90.0%,94%,83%,83.3%
+llm_openai_gpt-4.1-mini_law_v2,clean_text,60,100.0%,95.0%,97%,92%,93.3%
+llm_openai_gpt-4.1-mini_law_v2,ocr_photo,30,100.0%,96.7%,100%,92%,96.7%
+llm_openai_gpt-4.1-mini_zero_v1,clean_text,60,98.3%,90.0%,89%,92%,68.3%
+llm_openai_gpt-4.1-mini_zero_v2,clean_text,60,98.3%,91.7%,92%,92%,71.7%
