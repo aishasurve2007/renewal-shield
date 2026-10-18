@@ -9,6 +9,9 @@ so the numbers compare directly. Two modes:
   rag     – plus the law articles RETRIEVED for this clause, quoted verbatim (law_index.py).
   oracle  – plus the CORRECT articles for this clause, verbatim: the best rag could ever do.
             rag vs oracle separates retrieval mistakes from reasoning mistakes.
+  hybrid  – practice guidance (the 'law' summaries: what is normal, how serious) PLUS retrieved
+            verbatim articles (what the law actually says). Verbatim law fixed the model's outdated
+            knowledge but made it over-strict; the guidance restores the sense of what is normal.
 
 No training happens, so no leave-one-out is needed: every clause is unseen.
 
@@ -33,6 +36,7 @@ Usage:
   python classify_llm.py --provider openai --mode rag --ocr-dir out    # retrieved articles (BM25, k=3)
   python classify_llm.py --provider openai --mode rag --retriever openai
   python classify_llm.py --provider openai --mode oracle              # correct articles
+  python classify_llm.py --provider openai --mode hybrid --ocr-dir out  # guidance + retrieved articles
   python classify_llm.py --compare                                    # table of every run so far
 """
 
@@ -130,12 +134,17 @@ LAW_TEXT_INTRO = ("Relevant articles of Dubai tenancy law, quoted verbatim from 
 
 
 def build_prompt(text, mode, articles=None):
-    """zero: no law | law: my rule summaries | rag/oracle: verbatim articles (retrieved / correct ones)."""
+    """zero: no law | law: rule summaries | rag/oracle: verbatim articles | hybrid: guidance + retrieved articles."""
     if mode == "law":
         system = SYSTEM + "\n\n" + LAW_RULES
     elif mode in ("rag", "oracle"):
         from law_index import format_articles
         system = SYSTEM + "\n\n" + LAW_TEXT_INTRO + "\n\n" + format_articles(articles or [])
+    elif mode == "hybrid":
+        from law_index import format_articles
+        system = (SYSTEM + "\n\nPractice guidance - what is normal in Dubai tenancy contracts and how serious "
+                  "each issue is (use this to decide red / yellow / fine):\n" + LAW_RULES
+                  + "\n\n" + LAW_TEXT_INTRO + "\n\n" + format_articles(articles or []))
     else:
         system = SYSTEM
     return system, f'Clause: "{text}"'
@@ -267,7 +276,7 @@ def gold_of(row):
 
 def pick_articles(args, row, text):
     """rag: top-k retrieved for this text | oracle: the clause's correct articles | else: none."""
-    if args.mode == "rag":
+    if args.mode in ("rag", "hybrid"):
         from law_index import retrieve
         return retrieve(text, args.k, args.retriever)
     if args.mode == "oracle":
@@ -319,7 +328,7 @@ def run(args):
                      "gold_articles": "|".join(sorted(gold_of(r)))})
 
     res = pd.DataFrame(rows)
-    mode_tag = args.mode + (f"-{args.retriever}-k{args.k}" if args.mode == "rag" else "")
+    mode_tag = args.mode + (f"-{args.retriever}-k{args.k}" if args.mode in ("rag", "hybrid") else "")
     name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{mode_tag}_{PROMPT_VERSION}"
     res.to_csv(f"results/{name}.csv", index=False)
     summarize(res, name)
@@ -388,10 +397,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=list(DEFAULTS), default="gemini")
     ap.add_argument("--model", default=None)
-    ap.add_argument("--mode", choices=["zero", "law", "rag", "oracle"], default="zero",
-                    help="zero: no law | law: rule summaries | rag: retrieved articles | oracle: the correct articles")
-    ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25", help="for --mode rag")
-    ap.add_argument("-k", type=int, default=3, help="articles retrieved per clause (--mode rag)")
+    ap.add_argument("--mode", choices=["zero", "law", "rag", "oracle", "hybrid"], default="zero",
+                    help="zero: no law | law: rule summaries | rag: retrieved articles | oracle: the correct "
+                         "articles | hybrid: practice guidance + retrieved articles")
+    ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25", help="for --mode rag/hybrid")
+    ap.add_argument("-k", type=int, default=3, help="articles retrieved per clause (--mode rag/hybrid)")
     ap.add_argument("--bank", default=None)
     ap.add_argument("--ocr-dir", default=None)
     ap.add_argument("--limit", type=int, default=None, help="only N clauses (quick test)")
