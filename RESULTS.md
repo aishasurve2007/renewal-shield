@@ -45,12 +45,16 @@ changes matter for tenants, e.g. eviction at expiry now needs **12 months'** not
 
 | Test set | Image | Clauses found | Character error | Fields correct |
 |---|---|---|---|---|
-| 10 contracts | clean | 100% | 1.4% | 98.9% |
-| 10 contracts | photo | 100% | 2.8% | 100% |
-| 40 held-out contracts* | clean | 100% | 1.1% | 100% |
-| 40 held-out contracts* | photo | 97.6% | 4.2% | 99.4% |
+| out: 10 contracts (development) | clean | 100% | 1.2% | 98.9% |
+| out: 10 contracts (development) | photo | 100% | 2.6% | 100% |
+| data2: 40 contracts (development†) | clean | 100% | 0.9% | 100% |
+| data2: 40 contracts (development†) | photo | 100% | 2.0% | 99.4% |
+| **data3: 40 contracts (held-out)** | **clean** | **100%** | **0.8%** | **98.9%** |
+| **data3: 40 contracts (held-out)** | **photo** | **98.9%** | **2.8%** | **99.4%** |
 
-\*A separate set (seed 999) never used while tuning the OCR pipeline.
+†data2 started as a held-out set, but its failures were used to improve the clause splitter, so it
+became a development set. data3 (seed 2026) was generated afterwards and never looked at while tuning:
+**its numbers are the ones to quote.** Its only miss (contract 12, photo, 4/6) was deliberately left unfixed.
 
 **What made the difference (each fix measured):**
 
@@ -58,20 +62,24 @@ changes matter for tenants, e.g. eviction at expiry now needs **12 months'** not
 |---|---|
 | Straighten (deskew) the page before reading | Tilted photos stopped mixing words between lines. Also lifted Tesseract on photos from 31% → 82% clause recall. |
 | Re-read low-confidence lines from a bigger crop | Long lines that came back as garbage ("ea") are read correctly. |
-| Accept the clause numbers OCR actually produces ("1..", "2:", "3,") | Clauses with misread numbers are split correctly instead of being lost. |
+| Accept the clause numbers OCR actually produces ("1..", "2:", "3,", "4.7 The") | Clauses with misread numbers are split correctly instead of being lost. |
+| Start a new clause after a short line when the number is missing | Two clauses no longer merge when OCR drops a clause number. |
+| Tolerant section heading ("ADDITIONAL.TERMS", "ADD1TIONAL") | The splitter no longer turns field lines into fake clauses. |
 | Repair missing spaces ("berefunded" → "be refunded") | Glued words are split back into real words; lower character error on photos. |
 | Remove coloured ink (red watermark, blue signatures) | Little effect once deskewing was in place. Reported anyway. |
 
-**Lesson:** on the contracts used while tuning, photo recall reached 100%; on 40 fresh
-contracts it was 97.6%. All 4 missed clauses come from 2 of the 40 photos, and both have the
-same cause: OCR dropped a clause number ("3."), so two clauses merged into one. That is one
-specific weakness, not general photo noise, and the next thing to fix.
+**Lesson:** each "held-out" set only stays held out until you fix something based on it. On data2,
+photo recall was first 94.5%; that turned out to be partly a scoring bug (below) and partly two real
+failures: OCR dropping a clause number ("3.") so two clauses merged, a misread heading
+("ADDITIONAL.TERMS") and stray marks after numbers ("4.7 The..."). After fixing those, data2 reached
+100%, but by then it was no longer an honest test. A fresh set (data3) confirmed the fixes generalise:
+98.9% photo recall.
 
 **Scoring note:** an earlier version of the scorer matched clauses in order, so one merged
 clause could cascade into several false misses (contract 36 scored 1/6 instead of its true 4/6).
 It now matches the best pairs first. All numbers above use the fixed scorer.
 
-**Speed:** about 14–18 s per page on a laptop CPU. Fine for a benchmark, too slow for a user without a progress indicator.
+**Speed:** about 12–18 s per page on a laptop CPU. Fine for a benchmark, too slow for a user without a progress indicator.
 
 ---
 
@@ -174,9 +182,10 @@ Both retrievers fail on early termination: clauses say "penalty" and "leave earl
 pip install -r requirements.txt
 python generate_contracts.py --n 10                        # synthetic contracts → out/
 python ocr_pipeline.py --data out                          # OCR + evaluation
-python generate_contracts.py --n 40 --out data2 --seed 999 # held-out OCR set
-python ocr_pipeline.py --data data2
-python ocr_pipeline.py --data data2 --rescore              # re-score saved OCR without re-running it
+python generate_contracts.py --n 40 --out data2 --seed 999  # development set
+python generate_contracts.py --n 40 --out data3 --seed 2026 # held-out set: don't tune on it
+python ocr_pipeline.py --data data3
+python ocr_pipeline.py --data data2 --rescore               # re-score saved OCR without re-running it
 python classify_baseline.py --ocr-dir out                  # TF-IDF baseline (leave-one-clause-out)
 python law_index.py --build                                # law PDFs → consolidated article index
 python law_index.py --eval                                 # retrieval hit@k (add --retriever openai)
@@ -193,7 +202,6 @@ so re-running reproduces the exact numbers above without new API calls.
 
 ## 8. Next
 
-- Fix merged clauses when OCR drops a clause number (contracts 24 and 36 of the held-out set).
 - Verify every label; settle NP-F04.
 - Second model (Gemini) for the same table.
 - 20–50 real redacted contracts as an untouched test set; run hybrid **once** on it.

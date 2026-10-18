@@ -277,7 +277,9 @@ def strip_trailing_scrap(t):
 
 
 # ----------------------------------------------------------------- clause split
-START = re.compile(r"ADDITIONAL\s*TERMS", re.I)
+START = re.compile(r"ADD[I1l]T[I1l]ONAL\W*TERMS?", re.I)          # "ADDITIONAL TERMS", "ADDITIONAL.TERMS", ...
+START_FALLBACK = re.compile(r"^.*\bTERMS\b(?!\s*AND).*$|^.*ADD[I1l]T\w*.*$", re.M)   # badly read heading
+CHEQUES_LINE = re.compile(r"^.*Cheques.*$", re.M | re.I)        # last field line before the clauses
 STOP = re.compile(r"(Landlord\s*Signature|Tenant\s*Signature|SYNTHETIC\s*SAMPLE\s*[—-])", re.I)
 SIG_SCRAP = re.compile(r"\s*\b(Land\w*|Ten\w*)\s*S[il1][a-z]*\s*$")   # "LandlordSiamna", "Tenaat Sign"
 # clause numbers as OCR really reads them: "2. The", "2.The", "1..The", "2: The", "3, The"
@@ -294,18 +296,49 @@ def strip_watermark(t):
     return " ".join(words).strip()
 
 
+# line begins with a clause number as OCR reads it: "3.", "3:", "3,", "3..", or with a stray mark "4.7 The"
+ITEM_START = re.compile(r"^\s*(\d{1,2})\s*[.):,;]{1,2}\s*(?:[^\sA-Za-z]{1,2}\s+)?(?=[A-Z])")
+
+
+def _clause_lines(section):
+    """Group the section's lines into clauses.
+
+    A new clause starts when a line
+      (a) begins with a clause number ("3.", "3:", "3,"), or
+      (b) begins with a capital letter right after a SHORT line.
+    (b) catches clauses whose number the OCR dropped: a clause's last line is usually
+    shorter than a full line, while a wrapped continuation follows a full-width line.
+    """
+    lines = [ln.strip() for ln in section.splitlines()]
+    lines = [ln for ln in lines if len(ln) >= 4]                 # drop OCR scraps like "M"
+    if not lines:
+        return []
+    full = max(len(ln) for ln in lines)
+    groups, prev = [], None
+    for ln in lines:
+        numbered = ITEM_START.match(ln)
+        after_short = (prev is not None and len(prev) < 0.75 * full and ln[:1].isupper())
+        if numbered or after_short or not groups:
+            groups.append([ITEM_START.sub("", ln) if numbered else ln])
+        else:
+            groups[-1].append(ln)
+        prev = ln
+    return [" ".join(g) for g in groups]
+
+
 def split_clauses(text):
     """Return the list of clause texts from the Additional Terms section."""
-    m = START.search(text)
+    m = START.search(text) or START_FALLBACK.search(text)
+    if not m:                                   # heading unreadable: start after the last field line
+        cheq = list(CHEQUES_LINE.finditer(text))
+        m = cheq[-1] if cheq else None
     section = text[m.end():] if m else text
     s = STOP.search(section)
     if s:
         section = section[:s.start()]
-    parts = ITEM.split(section)
-    # parts = [before, num, text, num, text, ...]
     clauses = []
-    for i in range(1, len(parts) - 1, 2):
-        t = " ".join(parts[i + 1].split())
+    for t in _clause_lines(section):
+        t = " ".join(t.split())
         t = strip_trailing_scrap(SIG_SCRAP.sub("", fix_spacing(strip_watermark(t))))
         if len(t) > 15:
             clauses.append(t)

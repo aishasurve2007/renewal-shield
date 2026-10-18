@@ -30,7 +30,7 @@ On synthetic contracts (60 clause wordings, 6 categories), problem-vs-fine accur
 | GPT-4.1-mini + verbatim law (RAG) | 95% | 72% |
 | **GPT-4.1-mini + guidance + verbatim law (hybrid)** | **98%** | **95%** |
 
-OCR on 40 held-out phone photos: **97.6%** of clauses found, **99.4%** of fields (rent, deposit, dates) correct.
+OCR on 40 held-out phone photos: **98.9%** of clauses found, **99.4%** of fields (rent, deposit, dates) correct.
 
 **Most interesting finding:** the LLM "knew" the 2007 eviction rule (90 days' notice) and kept applying
 it even when a summary of the 2008 rule (12 months) was in the prompt. Only the verbatim article text overrode it.
