@@ -74,6 +74,22 @@ def deskew(img):
     return img.rotate(angle, resample=Image.BICUBIC, expand=True, fillcolor=bg)
 
 
+def _rec_result(rr):
+    """Recognition-only output differs between RapidOCR versions:
+    [[box, text, score]] on some, [[text, score]] on others. Return (text, score) or None."""
+    if not rr or not rr[0]:
+        return None
+    item = rr[0]
+    try:
+        if len(item) >= 3:
+            return str(item[1]), float(item[2])
+        if len(item) == 2:
+            return str(item[0]), float(item[1])
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
 def ocr_rapid(img):
     """Deskew the page, run RapidOCR, retry weak lines, then rebuild lines in reading order."""
     import numpy as np
@@ -93,8 +109,9 @@ def ocr_rapid(img):
             for px, py in [(10, 6), (20, 12), (30, 18)]:
                 crop = img.crop((max(0, x0 - px), max(0, y0 - py), x1 + px, y1 + py))
                 rr, _ = eng(np.array(crop), use_det=False, use_cls=False)
-                if rr and float(rr[0][2]) > float(score):
-                    text, score = rr[0][1], rr[0][2]
+                got = _rec_result(rr)
+                if got and got[1] > float(score):
+                    text, score = got
                 if float(score) >= 0.85:
                     break
         if float(score) < 0.3 or not text.strip():

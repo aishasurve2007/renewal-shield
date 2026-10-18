@@ -1,0 +1,9 @@
+pandas
+openpyxl
+pillow
+numpy
+rapidocr-onnxruntime
+jiwer
+pytesseract
+joblib
+scikit-learn
