@@ -13,6 +13,7 @@ Usage:
   python ocr_pipeline.py --data out --engine rapidocr
   python ocr_pipeline.py --data out --engine tesseract --limit 10
   python ocr_pipeline.py --image out/photo/contract_0001.png --engine rapidocr   # one file
+  python ocr_pipeline.py --data out --rescore      # re-score saved OCR output, no OCR (seconds)
 """
 
 import argparse
@@ -357,19 +358,23 @@ def cer(pred, gold):
 
 
 def match_clauses(pred, gold):
-    """Greedy match each gold clause to its most similar predicted clause."""
-    used, pairs = set(), []
-    for g in gold:
-        best, best_i = 0.0, None
-        for i, p in enumerate(pred):
-            if i in used:
-                continue
-            r = difflib.SequenceMatcher(None, g.lower(), p.lower()).ratio()
-            if r > best:
-                best, best_i = r, i
-        if best_i is not None:
-            used.add(best_i)
-            pairs.append((g, pred[best_i], best))
+    """Pair each gold clause with a predicted clause, best-matching pairs first (global greedy).
+    Matching gold clauses one by one in order let one merged/missing clause 'steal' its
+    neighbour's match and cascade into several false misses."""
+    sims = [(difflib.SequenceMatcher(None, g.lower(), p.lower()).ratio(), gi, pi)
+            for gi, g in enumerate(gold) for pi, p in enumerate(pred)]
+    sims.sort(reverse=True)
+    g_to_p, used_p = {}, set()
+    for sim, gi, pi in sims:
+        if gi in g_to_p or pi in used_p:
+            continue
+        g_to_p[gi] = (pi, sim)
+        used_p.add(pi)
+    pairs = []
+    for gi, g in enumerate(gold):
+        if gi in g_to_p:
+            pi, sim = g_to_p[gi]
+            pairs.append((g, pred[pi], sim))
         else:
             pairs.append((g, "", 0.0))
     return pairs
@@ -420,6 +425,37 @@ def evaluate(data_dir, engine, limit=None, kinds=("clean", "photo"), preprocess=
     return rows
 
 
+def rescore(data_dir, engine, kinds=("clean", "photo")):
+    """Re-split and re-score saved OCR output (data_dir/ocr/<engine>/*.json) without running OCR again.
+    Use after changing the clause splitter or the scoring."""
+    rows = []
+    for lp in sorted(glob.glob(os.path.join(data_dir, "labels", "*.json"))):
+        gold = json.load(open(lp, encoding="utf-8"))
+        g_clauses = [c["text"] for c in gold["clauses"]]
+        for kind in kinds:
+            op = os.path.join(data_dir, "ocr", engine, f"{gold['contract_id']}_{kind}.json")
+            if not os.path.exists(op):
+                continue
+            res = json.load(open(op, encoding="utf-8"))
+            res["clauses"] = split_clauses(res["text"])
+            res["fields"] = extract_fields(res["text"])
+            with open(op, "w", encoding="utf-8") as f:
+                json.dump(res, f, indent=2, ensure_ascii=False)
+            pairs = match_clauses(res["clauses"], g_clauses)
+            rows.append({
+                "contract_id": gold["contract_id"], "kind": kind, "engine": engine, "preprocess": True,
+                "gold_clauses": len(g_clauses), "pred_clauses": len(res["clauses"]),
+                "clauses_found": sum(1 for _, _, sim in pairs if sim >= 0.8),
+                "clause_cer": round(sum(cer(p, g) for g, p, _ in pairs) / max(1, len(pairs)), 4),
+                "fields_correct": sum(1 for k in FIELD_PATTERNS if res["fields"].get(k) == gold["fields"].get(k)),
+                "fields_total": len(FIELD_PATTERNS), "seconds": round(res.get("seconds", 0), 2),
+            })
+    for r in rows:
+        if r["clauses_found"] < r["gold_clauses"]:
+            print(f"{r['contract_id']} {r['kind']:5s} clauses {r['clauses_found']}/{r['gold_clauses']} CER {r['clause_cer']:.3f}")
+    return rows
+
+
 def summarize(rows):
     print("\n=== SUMMARY ===")
     for kind in ["clean", "photo"]:
@@ -443,6 +479,8 @@ def main():
     ap.add_argument("--engine", choices=list(ENGINES), default="rapidocr")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--image", default=None, help="run on a single image and print the result")
+    ap.add_argument("--rescore", action="store_true",
+                    help="re-score saved OCR output (after splitter/scoring changes) without running OCR")
     ap.add_argument("--no-preprocess", action="store_true",
                     help="skip coloured-ink removal (to measure how much it helps)")
     args = ap.parse_args()
@@ -458,7 +496,10 @@ def main():
         return
 
     prep = not args.no_preprocess
-    rows = evaluate(args.data, args.engine, args.limit, preprocess=prep)
+    if args.rescore:
+        rows = rescore(args.data, args.engine)
+    else:
+        rows = evaluate(args.data, args.engine, args.limit, preprocess=prep)
     out_csv = os.path.join(args.data, f"ocr_results_{args.engine}{'_prep' if prep else ''}.csv")
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
