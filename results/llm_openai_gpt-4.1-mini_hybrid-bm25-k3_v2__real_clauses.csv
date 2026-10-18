@@ -1,0 +1,15 @@
+id,source,difficulty,gold_category,gold_label,gold_severity,pred_category,pred_label,pred_severity,repaired,reason,articles,gold_articles
+DLD-01,clean_text,real,maintenance,fine,none,maintenance,problem,yellow,True,"Tenant waives right to request repairs or claim defects, which is unfavorable.",D43-1|L26-21|L26-25,L26-15|L26-21
+DLD-02,clean_text,real,other,fine,none,landlord_termination,fine,none,False,"Tenant requires landlord's written approval for transfer or sublease, which is legal and standard.",L26-2|L26-25|L26-24,L26-24
+DLD-03,clean_text,real,other,fine,none,maintenance,fine,none,False,"Tenant must obtain landlord approval before changes, which aligns with law.",L26-19|L26-15|L26-25,L26-19
+DLD-04,clean_text,real,other,fine,none,maintenance,fine,none,False,Tenant paying utilities is normal and legal in Dubai tenancy contracts.,L26-24|L26-16|L26-25,L26-22
+DLD-05,clean_text,real,other,fine,none,rent_increase,fine,none,False,The clause simply states rent payment terms without conflicting with the law.,L26-12|L26-19|L26-25,L26-12|L26-19
+DLD-06,clean_text,real,other,fine,none,maintenance,fine,none,False,Tenant compliance with property management rules is standard and reasonable.,L26-11|L26-15|L26-25,
+DLD-07,clean_text,real,other,fine,none,notice_period,fine,none,False,Specifying contact details for formal notifications is standard and acceptable.,L26-32|L26-21|L26-33,
+DLD-08,clean_text,real,maintenance,fine,none,maintenance,fine,none,False,Clause aligns with landlord's responsibility to maintain premises and not reduce tenant's benefit.,L26-16|L26-17|L26-24,L26-11|L26-16
+DLD-09,clean_text,real,other,fine,none,landlord_termination,fine,none,False,"Clause confirms landlord's legal authority, which is standard and acceptable.",L26-2|L26-32|L26-34,
+DLD-10,clean_text,real,other,fine,none,landlord_termination,fine,none,False,"Disputes are directed to the Rental Dispute Center, which is standard and lawful.",D43-2|L26-21|L26-32,
+DLD-11,clean_text,real,other,fine,none,rent_increase,fine,none,False,Clause ensures compliance with current and future Dubai tenancy laws.,L26-1|L26-9|L26-2,
+DLD-12,clean_text,real,other,fine,none,notice_period,fine,none,False,"Clause ensures compliance with law, which is acceptable.",L26-31|L26-15|L26-26,
+DLD-13,clean_text,real,other,fine,none,invalid,fine,none,False,Standard clause giving precedence to Arabic text in case of discrepancy.,L26-1|L26-26|D43-1,
+DLD-14,clean_text,real,other,fine,none,invalid,fine,none,False,"Clause ensures EJARI registration, which is standard and beneficial for tenants.",L26-18|L26-20|L26-3,L26-4

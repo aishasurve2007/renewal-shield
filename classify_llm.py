@@ -37,6 +37,7 @@ Usage:
   python classify_llm.py --provider openai --mode rag --retriever openai
   python classify_llm.py --provider openai --mode oracle              # correct articles
   python classify_llm.py --provider openai --mode hybrid --ocr-dir out  # guidance + retrieved articles
+  python classify_llm.py --provider openai --mode hybrid --clauses real/real_clauses.csv   # any clause list
   python classify_llm.py --compare                                    # table of every run so far
 """
 
@@ -268,6 +269,23 @@ def classify(provider, model, mode, text, cache, delay, articles=None):
     return ans
 
 
+# ----------------------------------------------------------------- other clause sets
+def load_clauses(path):
+    """Any clause list as CSV, e.g. real clauses from public templates.
+    Required columns: id, text, category, label, severity. Optional: difficulty, law_ref, source."""
+    df = pd.read_csv(path).fillna("")
+    missing = {"id", "text", "category", "label", "severity"} - set(df.columns)
+    if missing:
+        raise SystemExit(f"{path} is missing columns: {sorted(missing)}")
+    for col, default in (("difficulty", "real"), ("law_ref", ""), ("source", "")):
+        if col not in df.columns:
+            df[col] = default
+    df["label"] = df["label"].str.strip().str.lower()
+    df["severity"] = df["severity"].str.strip().str.lower().replace("", "none")
+    print(f"Clauses: {path} ({len(df)} clauses)")
+    return df.reset_index(drop=True)
+
+
 # ----------------------------------------------------------------- law articles for rag/oracle
 def gold_of(row):
     from law_index import gold_ids
@@ -294,7 +312,7 @@ def run(args):
     if env and not os.environ.get(env) and not args.dry_run:
         raise SystemExit(f"{env} not found. Add a line  {env}=your-key  to the .env file in the project folder.")
 
-    df = load_bank(args.bank)
+    df = load_clauses(args.clauses) if args.clauses else load_bank(args.bank)
     if args.limit:
         df = df.sample(n=min(args.limit, len(df)), random_state=0)
 
@@ -330,9 +348,18 @@ def run(args):
     res = pd.DataFrame(rows)
     mode_tag = args.mode + (f"-{args.retriever}-k{args.k}" if args.mode in ("rag", "hybrid") else "")
     name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{mode_tag}_{PROMPT_VERSION}"
+    if args.clauses:
+        name += "__" + os.path.splitext(os.path.basename(args.clauses))[0]
     res.to_csv(f"results/{name}.csv", index=False)
     summarize(res, name)
 
+    clean = res[res["source"] == "clean_text"]
+    fine = clean[clean["gold_label"] == "fine"]
+    prob = clean[clean["gold_label"] == "problem"]
+    if len(fine):
+        print(f"False alarms: {(fine['pred_label'] == 'problem').sum()}/{len(fine)} fine clauses flagged as problems")
+    if len(prob):
+        print(f"Missed problems: {(prob['pred_label'] == 'fine').sum()}/{len(prob)} problem clauses called fine")
     wrong = res[(res["source"] == "clean_text") & (res["gold_label"] != res["pred_label"])]
     if len(wrong):
         print("\nWrong problem/fine calls (clean text):")
@@ -352,8 +379,9 @@ def metrics(r):
     out["repaired"] = r["repaired"].mean() if "repaired" in r else 0.0
     if "articles" in r and r["articles"].astype(str).str.len().gt(0).any():
         hits = [bool(set(str(a).split("|")) & set(str(g).split("|")))
-                for a, g in zip(r["articles"].fillna(""), r["gold_articles"].fillna(""))]
-        out["retrieval_hit"] = sum(hits) / len(hits)
+                for a, g in zip(r["articles"].fillna(""), r["gold_articles"].fillna("")) if str(g).strip()]
+        if hits:                                   # only clauses that have a known law reference
+            out["retrieval_hit"] = sum(hits) / len(hits)
     return out
 
 
@@ -361,8 +389,10 @@ def summarize(res, name):
     print(f"\n=== {name} ===")
     for source in res["source"].unique():
         m = metrics(res[res["source"] == source])
-        print(f"{source:10s} n={m['n']:3d} | category {m['category']:6.1%} | problem/fine {m['label']:6.1%} "
-              f"(easy {m['label_easy']:.0%}, hard {m['label_hard']:.0%}) | severity {m['severity']:6.1%}"
+        eh = (f" (easy {m['label_easy']:.0%}, hard {m['label_hard']:.0%})"
+              if m["label_easy"] == m["label_easy"] and m["label_hard"] == m["label_hard"] else "")
+        print(f"{source:10s} n={m['n']:3d} | category {m['category']:6.1%} | problem/fine {m['label']:6.1%}"
+              f"{eh} | severity {m['severity']:6.1%}"
               + (f" | invalid answers {m['invalid']:.0%}" if m["invalid"] else "")
               + (f" | off-format answers repaired {m['repaired']:.0%}" if m["repaired"] else "")
               + (f" | right article given {m['retrieval_hit']:.0%}" if "retrieval_hit" in m else ""))
@@ -403,6 +433,7 @@ def main():
     ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25", help="for --mode rag/hybrid")
     ap.add_argument("-k", type=int, default=3, help="articles retrieved per clause (--mode rag/hybrid)")
     ap.add_argument("--bank", default=None)
+    ap.add_argument("--clauses", default=None, help="CSV of other clauses to test (id,text,category,label,severity)")
     ap.add_argument("--ocr-dir", default=None)
     ap.add_argument("--limit", type=int, default=None, help="only N clauses (quick test)")
     ap.add_argument("--delay", type=float, default=None, help="seconds between calls (rate limits)")
