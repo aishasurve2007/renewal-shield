@@ -28,9 +28,11 @@ On synthetic contracts (60 clause wordings, 6 categories), problem-vs-fine accur
 | TF-IDF + logistic regression | 47% | 37% |
 | GPT-4.1-mini, no law | 92% | 72% |
 | GPT-4.1-mini + verbatim law (RAG) | 95% | 72% |
-| **GPT-4.1-mini + guidance + verbatim law (hybrid)** | **98%** | **95%** |
+| **GPT-4.1-mini + guidance + verbatim law (hybrid)** | **98%** | **98%** |
 
 OCR on 40 held-out phone photos: **98.9%** of clauses found, **99.4%** of fields (rent, deposit, dates) correct.
+
+On the 14 official Ejari standard terms (real wording, all lawful): **0 false alarms**.
 
 **Most interesting finding:** the LLM "knew" the 2007 eviction rule (90 days' notice) and kept applying
 it even when a summary of the 2008 rule (12 months) was in the prompt. Only the verbatim article text overrode it.

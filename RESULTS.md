@@ -18,7 +18,7 @@ For each clause in a contract's "Additional Terms" section, predict:
 
 | Output | Values |
 |---|---|
-| **category** | rent_increase · notice_period · landlord_termination · early_termination · maintenance · deposit |
+| **category** | rent_increase · notice_period · landlord_termination · early_termination · maintenance · deposit · other (from prompt v3) |
 | **label** | problem · fine |
 | **severity** | 🔴 red (likely conflicts with the law) · 🟡 yellow (legal but unfavourable, negotiate) · none |
 
@@ -97,11 +97,15 @@ Problem/fine and severity are the hard parts; category is easy for every LLM set
 | GPT-4.1-mini · oracle | + the **correct** articles, verbatim | 98.3% | 95.0% | 94% | 96% | 68.3% |
 | GPT-4.1-mini · rag (BM25) | + **retrieved** articles, verbatim | 96.7% | 95.0% | 94% | 96% | 71.7% |
 | GPT-4.1-mini · rag (embeddings) | + retrieved articles, verbatim | 98.3% | 93.3% | 94% | 92% | 66.7% |
-| **GPT-4.1-mini · hybrid (BM25)** | **guidance + retrieved articles** | **100%** | **98.3%** | **100%** | **96%** | **95.0%** |
+| GPT-4.1-mini · hybrid (BM25) | guidance + retrieved articles | 100% | 98.3% | 100% | 96% | 95.0% |
 | GPT-4.1-mini · hybrid (embeddings) | guidance + retrieved articles | 100% | 95.0% | 97% | 92% | 90.0% |
+| **GPT-4.1-mini · hybrid (BM25), prompt v3** | **+ "other" category, current-condition guidance** | **100%** | **98.3%** | **100%** | **96%** | **98.3%** |
 
-On clauses read by OCR from photos (n = 30), hybrid scores 96.7% problem/fine and 93–97% severity:
-**the OCR step costs essentially nothing.**
+All rows use prompt v2 except the last. v3 was written after the real-wording check (section 4.3);
+on the benchmark it changes no problem/fine call and fixes two severity calls.
+
+On clauses read by OCR from photos (n = 30), hybrid scores 96.7% problem/fine and 93–97% severity
+(v3: 96.7% / 96.7%): **the OCR step costs essentially nothing.**
 
 At n = 60, one clause = 1.7 points. Differences of one or two clauses (e.g. hybrid BM25 vs hybrid embeddings) are noise.
 
@@ -118,6 +122,31 @@ hit@3 by category:
 |---|---|---|---|---|---|---|
 | BM25 | 10/10 | 3/10 | 6/10 | 6/10 | 8/10 | **0/10** |
 | Embeddings | 10/10 | **9/10** | 8/10 | 7/10 | 7/10 | **2/10** |
+
+### 4.3 Real-wording check: the official Ejari standard terms
+
+The benchmark clauses were all written by me. As a first check on real wording, I ran hybrid on the
+**14 standard terms printed on the official DLD/Ejari unified tenancy contract**, copied word for word
+from the DLD PDF. They are all lawful by definition (the regulator wrote them), so the only question is
+whether the model raises **false alarms**. Most don't fit my six categories, so their gold category is "other".
+
+| Prompt | False alarms | Category | Right article given |
+|---|---|---|---|
+| v2 (six categories, no "other") | 1/14 | 14.3% | 71% |
+| **v3 ("other" + current-condition guidance)** | **0/14** | **92.9%** | 71% |
+
+- **v2's false alarm (DLD-01):** *"The tenant has inspected the premises and agreed to lease the unit on
+  its current condition."* Flagged yellow as if it shifted repairs to the tenant. It doesn't: Art. 16
+  still makes the landlord responsible for maintenance. v3's guidance says accepting the current
+  condition is fine unless the clause *also* removes the repair duty or the right to claim.
+- **v2's category score** was low simply because there was no "other" option: the model had to force
+  "use the premises for residential purposes only" into one of six boxes.
+- **v3's one category miss (DLD-03),** no alterations without written approval, was put under
+  maintenance. Defensible; my category definitions don't say where alterations belong.
+
+**Caveat:** v3 was written *after* seeing v2's mistakes on these 14 terms, so this set is now a
+development set too, and 0/14 is not an independent number. It shows the fix works, not that the
+model generalises to real contracts. That still needs real, redacted contracts nobody has tuned on.
 
 ---
 
@@ -151,7 +180,11 @@ Both retrievers fail on early termination: clauses say "penalty" and "leave earl
 "may not be unilaterally terminated". Embeddings fix vocabulary gaps like "repairs" vs
 "maintenance works" (3/10 → 9/10) but not this one.
 
-**Remaining errors in the best run:**
+**7. Missing an "other" option breaks real contracts.** Real contracts are mostly boilerplate that fits
+none of the six risk categories. Without "other", the model forced every clause into a category and once
+invented a problem to go with it (section 4.3).
+
+**Remaining errors in the best run (same in v2 and v3):**
 - **NP-F04**, the tenant's own 60-day non-renewal notice, labelled "fine" but predicted "problem". This
   may be a labelling question: the 2007 Art. 14 covered non-renewal *and* amendments, while the 2008
   version only covers amendments. To be settled during label verification.
@@ -168,7 +201,8 @@ Both retrievers fail on early termination: clauses say "penalty" and "leave earl
   per-clause verification is still in progress (see NP-F04).
 - **Small n.** 60 clauses, 30 photo clauses. One clause = 1.7 points.
 - **Prompt tuned on the test set.** Prompt v2 (an explicit "yellow/red = problem" rule) was written
-  after seeing v1's errors. Both versions are reported. Only a new test set gives a clean number.
+  after seeing v1's errors, and v3 after seeing v2's errors on the Ejari terms. All versions are
+  reported. Only a new test set gives a clean number.
 - **Partly circular guidance.** The practice guidance in the `law`/`hybrid` prompts was written alongside
   the labels, so it is close to a labelling guide. The `zero` and `oracle` modes don't use it.
 - **One LLM.** GPT-4.1-mini only so far. Gemini runs are pending (free-tier quota).
@@ -194,6 +228,7 @@ python classify_llm.py --provider openai --mode law    --ocr-dir out
 python classify_llm.py --provider openai --mode oracle --ocr-dir out
 python classify_llm.py --provider openai --mode rag    --ocr-dir out
 python classify_llm.py --provider openai --mode hybrid --ocr-dir out
+python classify_llm.py --provider openai --mode hybrid --clauses real/real_clauses.csv  # Ejari terms
 python classify_llm.py --compare                           # → results/comparison.csv
 ```
 

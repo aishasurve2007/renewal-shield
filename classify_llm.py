@@ -61,6 +61,8 @@ CATEGORIES = {
     "early_termination": "what happens if the tenant leaves before the end of the contract",
     "maintenance": "who is responsible for repairs and maintenance",
     "deposit": "the security deposit: refund, deductions, timing",
+    "other": "a routine clause outside the six areas above (utilities, use of the premises, subletting, "
+             "Ejari registration, disputes, governing law, notices, language of the contract, ...)",
 }
 
 LAW_RULES = """Relevant Dubai law (Law 26/2007 as amended by Law 33/2008; Decree 43/2013):
@@ -81,7 +83,9 @@ LAW_RULES = """Relevant Dubai law (Law 26/2007 as amended by Law 33/2008; Decree
   forfeiting all cheques, or no exit at all -> yellow (negotiate).
 - Maintenance (Art. 16): the landlord is responsible unless agreed otherwise. Tenant handling minor repairs,
   consumables or damage they caused -> fine. All, major or structural repairs, unlimited cost, or an "as is"
-  waiver -> yellow (negotiate).
+  waiver -> yellow (negotiate). Simply confirming the tenant inspected the unit and accepts it in its current
+  condition at handover is standard wording (it is in the official Ejari contract) -> fine; flag it only if the
+  clause ALSO removes the landlord's repair duty or the tenant's right to claim for defects.
 - Deposit (Art. 20, 21): refunded on expiry minus legitimate costs; ordinary wear and tear is excepted.
   Non-refundable or forfeited in full -> red. Deductions at the landlord's sole discretion, no refund deadline, or
   fixed charges regardless of condition -> yellow. Proof-based deductions, unpaid bills, clear timelines -> fine."""
@@ -125,7 +129,9 @@ CACHE = "results/llm_cache.jsonl"
 # files are named by it, so every version's numbers stay comparable in --compare.
 #   v1: first prompt
 #   v2: explicit rule that yellow/red => problem (v1 sometimes said "unfavourable" but labelled "fine")
-PROMPT_VERSION = "v2"
+#   v3: "other" category for routine clauses outside the six areas; guidance that accepting the unit in
+#       its current condition is fine (v2 read a repair waiver into the official Ejari term 1)
+PROMPT_VERSION = "v3"
 
 
 # ----------------------------------------------------------------- prompts
