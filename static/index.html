@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renewal Shield</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1c1b19; --muted: #6b675f; --line: #e3dfd6;
+    --accent: #1f4e46; --accent-ink: #ffffff;
+    --red: #b42318; --red-bg: #fdecea; --yellow: #946200; --yellow-bg: #fff6dd;
+    --green: #22704a; --green-bg: #e7f4ec; --grey-bg: #f0eee9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1f1f1d; --ink: #ecebe7; --muted: #a29e95; --line: #34332f;
+      --accent: #7cc0b1; --accent-ink: #10201c;
+      --red: #ff8a7a; --red-bg: #3a1d19; --yellow: #f2c45a; --yellow-bg: #33290f;
+      --green: #7fd3a3; --green-bg: #17301f; --grey-bg: #2a2926;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab { border: 1px solid var(--line); background: transparent; color: var(--muted);
+         padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; }
+  .tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  .drop { display: block; border: 2px dashed var(--line); border-radius: 12px; padding: 28px 16px; text-align: center;
+          cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--grey-bg); }
+  .drop strong { display: block; margin-bottom: 4px; }
+  .drop small { color: var(--muted); }
+  .preview { display: none; align-items: center; gap: 12px; margin-top: 14px; }
+  .preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+  .preview span { font-size: 14px; color: var(--muted); word-break: break-all; }
+  textarea { width: 100%; min-height: 110px; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+             background: var(--bg); color: var(--ink); font: inherit; resize: vertical; }
+  .btn { margin-top: 14px; width: 100%; padding: 12px; border: 0; border-radius: 10px; font: inherit;
+         font-weight: 600; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .status { margin-top: 18px; color: var(--muted); display: none; align-items: center; gap: 10px; }
+  .spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent);
+          border-radius: 50%; animation: spin .8s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: var(--red-bg); color: var(--red); display: none; }
+
+  #result { margin-top: 28px; display: none; }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 20px; }
+  .chip { padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; }
+  .chip.red { background: var(--red-bg); color: var(--red); }
+  .chip.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .chip.none { background: var(--green-bg); color: var(--green); }
+  .chip.invalid { background: var(--grey-bg); color: var(--muted); }
+
+  h2 { font-size: 17px; margin: 26px 0 10px; }
+  .clause { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 10px; background: var(--card); }
+  .clause.red { border-left-color: var(--red); }
+  .clause.yellow { border-left-color: var(--yellow); }
+  .clause.none { border-left-color: var(--green); }
+  .meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .text { margin: 0; }
+  .why { margin: 10px 0 0; font-size: 15px; }
+  .arts { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { color: var(--muted); width: 45%; }
+  ul.notes { padding-left: 20px; margin: 10px 0 0; }
+  details { margin-top: 20px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  pre { white-space: pre-wrap; font-size: 13px; background: var(--grey-bg); padding: 12px; border-radius: 8px; }
+  .fine-print { margin-top: 28px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Renewal <span>Shield</span></h1>
+  <p class="lead">Photograph your Dubai tenancy contract. See which clauses likely conflict with the law
+    and which are worth negotiating.</p>
+
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="photo">Contract photo</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="clause">One clause</button>
+    </div>
+
+    <div id="tab-photo">
+      <label class="drop" id="drop">
+        <strong>Choose a photo or drop it here</strong>
+        <small>JPG or PNG, whole page, straight and well lit · up to 10 MB</small>
+        <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+      </label>
+      <div class="preview" id="preview"><img id="thumb" alt=""><span id="fname"></span></div>
+    </div>
+
+    <div id="tab-clause" hidden>
+      <textarea id="clause" placeholder="e.g. The security deposit is non-refundable."></textarea>
+    </div>
+
+    <button class="btn" id="go" disabled>Check contract</button>
+    <div class="status" id="status"><div class="spin"></div><span id="status-text"></span></div>
+    <div class="error" id="error"></div>
+  </div>
+
+  <section id="result"></section>
+
+  <p class="fine-print">Not legal advice. The report flags clauses worth a closer look and can be wrong.
+    For a dispute, contact the Rental Dispute Center (RDC) at the Dubai Land Department or a lawyer.
+    Photos are deleted right after the check.</p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ORDER = ["red", "yellow", "invalid", "none"];
+const TITLE = { red: "Likely conflicts with the law", yellow: "Legal, but worth negotiating",
+                invalid: "Could not check", none: "Looks fine" };
+const ICON = { red: "🔴", yellow: "🟡", invalid: "❔", none: "✅" };
+const MONEY = ["annual_rent", "contract_value", "security_deposit"];
+let mode = "photo", file = null;
+
+// ---------- tabs
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  mode = t.dataset.tab;
+  document.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-selected", x === t));
+  $("tab-photo").hidden = mode !== "photo";
+  $("tab-clause").hidden = mode !== "clause";
+  $("go").textContent = mode === "photo" ? "Check contract" : "Check clause";
+  updateButton();
+}));
+
+// ---------- file pick / drop
+function setFile(f) {
+  if (!f) return;
+  file = f;
+  $("thumb").src = URL.createObjectURL(f);
+  $("fname").textContent = `${f.name} · ${(f.size / 1e6).toFixed(1)} MB`;
+  $("preview").style.display = "flex";
+  updateButton();
+}
+$("file").addEventListener("change", (e) => setFile(e.target.files[0]));
+const drop = $("drop");
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+$("clause").addEventListener("input", updateButton);
+
+function updateButton() {
+  $("go").disabled = mode === "photo" ? !file : $("clause").value.trim().length < 10;
+}
+
+// ---------- run
+let timers = [];
+function showStatus(steps) {
+  $("status").style.display = "flex";
+  timers.forEach(clearTimeout); timers = [];
+  steps.forEach(([ms, msg]) => timers.push(setTimeout(() => ($("status-text").textContent = msg), ms)));
+}
+function hideStatus() { timers.forEach(clearTimeout); $("status").style.display = "none"; }
+
+$("go").addEventListener("click", async () => {
+  $("error").style.display = "none";
+  $("result").style.display = "none";
+  $("go").disabled = true;
+  let req;
+  if (mode === "photo") {
+    const fd = new FormData(); fd.append("file", file);
+    req = fetch("/api/check", { method: "POST", body: fd });
+    showStatus([[0, "Uploading ..."], [800, "Reading the contract (about 20 seconds) ..."],
+                [20000, "Checking each clause against the law ..."], [45000, "Almost done ..."]]);
+  } else {
+    req = fetch("/api/check-clause", { method: "POST", headers: { "Content-Type": "application/json" },
+                                       body: JSON.stringify({ text: $("clause").value }) });
+    showStatus([[0, "Checking against the law ..."]]);
+  }
+  try {
+    const res = await req;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `Server error (${res.status})`);
+    render(data);
+  } catch (err) {
+    $("error").textContent = err.message;
+    $("error").style.display = "block";
+  } finally {
+    hideStatus(); updateButton();
+  }
+});
+
+// ---------- render (textContent everywhere: clause text comes from OCR)
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function render(r) {
+  const out = $("result"); out.innerHTML = "";
+  const clauses = r.clauses || [];
+
+  if (!clauses.length) {
+    out.append(el("p", null, "No clauses found. The \"Additional Terms\" section may be cut off or blurry. " +
+                              "Try a straighter, brighter photo of the whole page."));
+  } else {
+    const sum = el("div", "summary");
+    ORDER.forEach((s) => {
+      const n = clauses.filter((c) => c.severity === s).length;
+      if (n) sum.append(el("span", `chip ${s}`, `${ICON[s]} ${n} ${TITLE[s].toLowerCase()}`));
+    });
+    out.append(el("h2", null, `${clauses.length} clause${clauses.length === 1 ? "" : "s"} checked`), sum);
+
+    ORDER.forEach((s) => {
+      const group = clauses.filter((c) => c.severity === s);
+      if (!group.length) return;
+      out.append(el("h2", null, `${ICON[s]} ${TITLE[s]} (${group.length})`));
+      group.forEach((c) => {
+        const box = el("div", `clause ${s}`);
+        box.append(el("div", "meta", `Clause ${c.n} · ${String(c.category).replace(/_/g, " ")}`),
+                   el("p", "text", c.text));
+        if (s !== "none") {
+          const why = el("p", "why"); why.append(el("strong", null, "Why: "), c.reason || "");
+          box.append(why);
+          // Retrieved articles stay in the JSON for debugging but aren't shown: BM25 often retrieves
+          // off-topic articles (e.g. none on early termination), which reads as a wrong citation.
+        }
+        out.append(box);
+      });
+    });
+  }
+
+  const fields = r.fields || {};
+  if (Object.keys(fields).length) {
+    out.append(el("h2", null, "Contract details (as read, check against your copy)"));
+    const card = el("div", "card"), t = el("table");
+    for (const [k, v] of Object.entries(fields)) {
+      const tr = el("tr");
+      const val = v === null ? "— (not read)" : MONEY.includes(k) ? `AED ${Number(v).toLocaleString()}` : v;
+      tr.append(el("td", null, k.replace(/_/g, " ")), el("td", null, String(val)));
+      t.append(tr);
+    }
+    card.append(t);
+    if (r.field_notes?.length) {
+      const ul = el("ul", "notes");
+      r.field_notes.forEach((n) => ul.append(el("li", null, n)));
+      card.append(ul);
+    }
+    out.append(card);
+  }
+
+  if (r.ocr_text && mode === "photo") {
+    const d = el("details"); d.append(el("summary", null, "What the OCR read"), el("pre", null, r.ocr_text));
+    out.append(d);
+  }
+  out.append(el("p", "fine-print", `Checked ${r.checked_at} · ${r.provider} / ${r.model} · prompt ${r.prompt_version}`));
+  out.style.display = "block";
+  out.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+</script>
+</body>
+</html>

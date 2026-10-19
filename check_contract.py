@@ -144,8 +144,7 @@ def to_markdown(report):
             out.append(f"> {r['text']}")
             out.append("")
             if sev not in ("none", "unchecked"):
-                out.append(f"**Why:** {r['reason']}  ")
-                out.append(f"*Law articles checked: {'; '.join(r['articles_checked'])}*")
+                out.append(f"**Why:** {r['reason']}")    # retrieved articles: JSON only (often off-topic)
                 out.append("")
 
     if report["fields"]:
