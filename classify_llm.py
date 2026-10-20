@@ -265,6 +265,13 @@ def classify(provider, model, mode, text, cache, delay, articles=None):
                 raise SystemExit("Quota used up (HTTP 429). Answers so far are saved — run the same command "
                                  "again later (Gemini's free daily quota resets every 24h) and it will continue.")
             raise SystemExit(f"API error {e.code}: {body}")
+        except (TimeoutError, ConnectionError, urllib.error.URLError) as e:   # slow / dropped connection
+            if attempt < 4:
+                wait = 10 * (attempt + 1)
+                print(f"   network problem ({type(e).__name__}), retrying in {wait}s ...")
+                time.sleep(wait)
+                continue
+            raise SystemExit(f"Network problem after 5 tries: {e}. Answers so far are saved - run again.")
     ans = parse_answer(raw)
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
     with open(CACHE, "a", encoding="utf-8") as f:

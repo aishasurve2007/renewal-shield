@@ -1,9 +1,25 @@
+# Renewal Shield
+# Python 3.11 (conda env "renewal-shield")
+
+# data + clause bank
 pandas
 openpyxl
-pillow
 numpy
-rapidocr-onnxruntime
-jiwer
-pytesseract
-joblib
+pillow
+
+# OCR
+# Pinned: 1.4.x reads blurry real photos noticeably worse and returns nothing for very wide
+# text lines (see RESULTS.md 3.1). All OCR numbers are reproducible with this version.
+rapidocr-onnxruntime==1.2.3
+pytesseract          # optional second engine; needs the Tesseract program installed
+jiwer                # character error rate
+
+# classifiers + law
 scikit-learn
+joblib
+pypdf
+
+# web app
+fastapi
+uvicorn
+python-multipart

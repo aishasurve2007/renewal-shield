@@ -49,12 +49,14 @@ changes matter for tenants, e.g. eviction at expiry now needs **12 months'** not
 | out: 10 contracts (development) | photo | 100% | 2.6% | 100% |
 | data2: 40 contracts (development†) | clean | 100% | 0.9% | 100% |
 | data2: 40 contracts (development†) | photo | 100% | 2.0% | 99.4% |
-| **data3: 40 contracts (held-out)** | **clean** | **100%** | **0.8%** | **98.9%** |
-| **data3: 40 contracts (held-out)** | **photo** | **98.9%** | **2.8%** | **99.4%** |
+| **data3: 40 contracts (held-out)** | **clean** | **100%** | **0.8%** | **100%** |
+| **data3: 40 contracts (held-out)** | **photo** | **98.9%** | **2.8%** | **99.7%** |
 
 †data2 started as a held-out set, but its failures were used to improve the clause splitter, so it
 became a development set. data3 (seed 2026) was generated afterwards and never looked at while tuning:
 **its numbers are the ones to quote.** Its only miss (contract 12, photo, 4/6) was deliberately left unfixed.
+data3 was re-run after the real-camera fixes in 3.1 (which were made on phone photos, not on data3): clause
+recall unchanged, fields 98.9% → 100% (clean) and 99.4% → 99.7% (photo), thanks to more tolerant amount parsing.
 
 **What made the difference (each fix measured):**
 
@@ -78,6 +80,70 @@ failures: OCR dropping a clause number ("3.") so two clauses merged, a misread h
 **Scoring note:** an earlier version of the scorer matched clauses in order, so one merged
 clause could cascade into several false misses (contract 36 scored 1/6 instead of its true 4/6).
 It now matches the best pairs first. All numbers above use the fixed scorer.
+
+### 3.1 Real camera: printed contracts, phone photos
+
+I printed synthetic contracts (at least 9 different ones) and took **23 phone photos**: on a table and on a carpet, upright, sideways
+and upside down, tilted up to ~35°, with shadows and with a second page underneath. They were sent over
+WhatsApp, which shrinks them to 1600 px and removes the rotation flag (EXIF).
+
+| OCR version | Photos fully read (all clauses, no junk) |
+|---|---|
+| Before (tuned on synthetic photos only) | **3 / 23** |
+| + orientation fix (sideways / upside down / strong tilt) | 16 / 23 |
+| + tolerant signature-line detection | **20 / 23** |
+
+**What real photos broke that synthetic photos never did:**
+- **Sideways pages (17 of 23 photos).** People photograph documents in landscape, and WhatsApp strips the
+  "rotate me" flag. The old pipeline only fixed small tilts, so these produced 0–2 clauses. Fix: measure
+  the direction of the detected text lines (any angle), rotate them horizontal, then decide upright vs
+  upside down from the layout (contract text is left-aligned, so the side where line edges line up is the
+  left). The OCR's own confidence couldn't tell upright from upside down: it scored both the same.
+- **Mangled signature lines** ("Landlurd Sigaatury", "Laodlord Signabure") were kept as extra clauses.
+  Fix: fuzzy signature-line detection with safeguards so real clause lines aren't cut.
+
+**Final run** (my laptop, RapidOCR 1.2.3, full pipeline including the LLM). The photo set had
+changed slightly: 16 of the photos above plus 7 new ones, 23 in total, of 9 different contracts:
+
+| Metric | Result |
+|---|---|
+| Photos fully read (every clause, no junk) | **20 / 23** |
+| Photos that failed completely | 3 / 23 |
+| Clauses found, on the 20 readable photos | **102 / 102 (100%)** |
+| Fields correct (rent, deposit, dates ...) | 162 / 180 (90.0%)* |
+| Problem / fine correct | **98 / 102 (96.1%)** |
+| Severity correct | 95 / 102 (93.1%) |
+
+\*Mostly dates with a dropped slash ("15/072027"), "AFD" for "AED" and "Contrtest Date". The field parser
+has since been made tolerant of these; field accuracy on real photos hasn't been re-measured.
+
+Problem/fine on real photos (96.1%) matches synthetic photos (96.7%, section 4.1), so **the classifier
+held up on real camera input.** The 4 wrong problem/fine calls are worth reading, though:
+- **LT-P03** ("vacate at the end of the contract by giving three (3) months' notice", should be red) was
+  called *fine* on one photo, while the other photos of the same contract got it right. That is the
+  **2007-law error from finding 3 coming back**: slightly different OCR text retrieved different
+  articles, Art. 25 wasn't among them, and the model fell back on the outdated rule. The fix for the
+  knowledge conflict depends on retrieval, and retrieval is sensitive to OCR noise.
+- **ET-F05, MA-F01, NP-F02** (all fine, flagged yellow) came from the blurriest photos, where the text
+  was badly garbled ("responsiblc formajormaintonance"). On garbled text the model leans cautious.
+
+**The 3 failures** are photos where the page fills less than half the frame, or is dim. After WhatsApp's
+downscaling the text is only a few pixels tall. Not fixed: the app tells users to photograph the whole
+page, and sending as a *document* in WhatsApp keeps full resolution. Distance mattered more than angle:
+all three "hard" (angled/shadow) photos were read perfectly, while one of the "easy" ones failed.
+
+**Regression check** (data2, development set, 80 images): clause recall stays 100% / 100%; character
+error *improved* (clean 0.9% → 0.2%, photo 2.0% → 1.0%); field accuracy clean 100%, photo 99.2% (was 99.4%,
+one field). A first version rotated every page by tiny angles before deskewing, and the double
+resampling blurred digits ("47,000" → "47,ooo"); the fix only rotates for turns over 10°.
+
+**The OCR library version matters.** The same code and the same photos gave different results on
+two machines: RapidOCR **1.2.3** read 4 photos fully that **1.4.4** didn't. 1.4.4 reads blurry text
+worse ("odxdsu" where 1.2.3 reads the words) and returns *nothing* for very wide text lines. Two fixes
+help 1.4.4 without changing 1.2.3's results (read a failing long line in 2–3 pieces cut at word gaps;
+accept "2.lf" as clause number + "If"), but blurry text can't be fixed downstream, so
+`requirements.txt` pins **rapidocr-onnxruntime==1.2.3**. Lesson: pin the OCR model version, or
+benchmark numbers aren't reproducible.
 
 **Speed:** about 12–18 s per page on a laptop CPU. Fine for a benchmark, too slow for a user without a progress indicator.
 
@@ -220,6 +286,7 @@ python generate_contracts.py --n 40 --out data2 --seed 999  # development set
 python generate_contracts.py --n 40 --out data3 --seed 2026 # held-out set: don't tune on it
 python ocr_pipeline.py --data data3
 python ocr_pipeline.py --data data2 --rescore               # re-score saved OCR without re-running it
+python eval_phone.py --dir phone                           # real phone photos of printed contracts
 python classify_baseline.py --ocr-dir out                  # TF-IDF baseline (leave-one-clause-out)
 python law_index.py --build                                # law PDFs → consolidated article index
 python law_index.py --eval                                 # retrieval hit@k (add --retriever openai)

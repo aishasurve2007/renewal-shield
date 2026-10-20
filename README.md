@@ -32,6 +32,9 @@ On synthetic contracts (60 clause wordings, 6 categories), problem-vs-fine accur
 
 OCR on 40 held-out phone photos: **98.9%** of clauses found, **99.4%** of fields (rent, deposit, dates) correct.
 
+On **23 real phone photos** of printed contracts (sideways, angled, shadows, sent over WhatsApp):
+20 read fully, **100%** of clauses found on those, **96%** problem/fine correct.
+
 On the 14 official Ejari standard terms (real wording, all lawful): **0 false alarms**.
 
 **Most interesting finding:** the LLM "knew" the 2007 eviction rule (90 days' notice) and kept applying
@@ -54,6 +57,9 @@ python ocr_pipeline.py --image out/photo/contract_0001.png
 python law_index.py --build                            # law PDFs → article index
 python classify_llm.py --provider openai --mode hybrid --ocr-dir out
 python classify_llm.py --compare
+
+python check_contract.py --image out/photo/contract_0001.png   # one contract -> report
+uvicorn app:app --reload                                       # web app -> http://127.0.0.1:8000
 ```
 
 ## Project structure
@@ -65,6 +71,8 @@ python classify_llm.py --compare
 | `ocr_pipeline.py` | Photo → clauses + fields, with evaluation (`--rescore` re-scores saved output) |
 | `classify_baseline.py` | TF-IDF baseline, leave-one-clause-out evaluation |
 | `law_index.py` | Consolidated law index (2008 amendments replace 2007 text) + BM25/embedding retrieval |
+| `check_contract.py` | One contract end to end: photo → OCR → hybrid check → red/yellow/fine report (Markdown + JSON) |
+| `app.py`, `static/` | FastAPI web app: upload a photo, see the report; API docs at `/docs` |
 | `classify_llm.py` | LLM classifier: `zero` · `law` · `rag` · `oracle` · `hybrid`; OpenAI, Gemini, Anthropic, Ollama |
 | `law/` | Official law texts (EN/AR) and the built article index |
 | `results/` | Predictions, cached LLM answers, comparison table |
@@ -76,9 +84,11 @@ python classify_llm.py --compare
 - [x] Baseline, LLM and RAG classifiers; benchmark
 - [ ] Verify all labels against the law
 - [ ] Second LLM (Gemini) + real redacted contracts as a test set
-- [ ] Web app: FastAPI + upload page
+- [x] Web app: FastAPI + upload page
+- [ ] Deploy (public demo link)
+- [ ] Cite the article the model relied on (prompt v4)
 - [ ] Arabic contracts and Arabic/English mismatch check
 
 ## Tech
 
-Python · RapidOCR · Tesseract · scikit-learn · OpenAI / Gemini APIs · BM25 & embedding retrieval · pandas · Pillow
+Python · FastAPI · RapidOCR · Tesseract · scikit-learn · OpenAI / Gemini APIs · BM25 & embedding retrieval · pandas · Pillow
