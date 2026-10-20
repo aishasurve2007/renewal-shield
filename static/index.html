@@ -217,6 +217,9 @@ function render(r) {
       if (n) sum.append(el("span", `chip ${s}`, `${ICON[s]} ${n} ${TITLE[s].toLowerCase()}`));
     });
     out.append(el("h2", null, `${clauses.length} clause${clauses.length === 1 ? "" : "s"} checked`), sum);
+    if (r.skipped_clauses)
+      out.append(el("p", "fine-print", `This demo checks the first ${clauses.length} clauses; ` +
+                                       `${r.skipped_clauses} more were found but not checked.`));
 
     ORDER.forEach((s) => {
       const group = clauses.filter((c) => c.severity === s);
@@ -243,7 +246,7 @@ function render(r) {
     const card = el("div", "card"), t = el("table");
     for (const [k, v] of Object.entries(fields)) {
       const tr = el("tr");
-      const val = v === null ? "— (not read)" : MONEY.includes(k) ? `AED ${Number(v).toLocaleString()}` : v;
+      const val = v === null ? "— (not read)" : MONEY.includes(k) ? `AED ${Number(v).toLocaleString("en-US")}` : v;
       tr.append(el("td", null, k.replace(/_/g, " ")), el("td", null, String(val)));
       t.append(tr);
     }
