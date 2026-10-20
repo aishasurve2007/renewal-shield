@@ -2,6 +2,9 @@
 
 **Photograph your Dubai tenancy contract. Find out which clauses break the law, and which to negotiate.**
 
+**▶ Live demo:** https://renewal-shield.salmonrock-69923d13.germanywestcentral.azurecontainerapps.io/
+(sleeps when idle: the first check after a while takes ~1 min to wake up)
+
 Most tenants sign without reading the additional terms. Renewal Shield reads a phone photo of the
 contract, splits out each clause, and checks it against Dubai tenancy law
 (Law 26/2007 as amended by Law 33/2008, and Decree 43/2013):
@@ -62,6 +65,10 @@ python check_contract.py --image out/photo/contract_0001.png   # one contract ->
 uvicorn app:app --reload                                       # web app -> http://127.0.0.1:8000
 ```
 
+**Deploy:** every push builds a Docker image with GitHub Actions (`.github/workflows/build-image.yml`);
+`deploy_azure.ps1` points Azure Container Apps at it. The OpenAI key is an Azure secret; the app limits
+visitors (5 photos/hour each, 150 checks/day in total) so a public link can't run up the API bill.
+
 ## Project structure
 
 | File | What it does |
@@ -85,10 +92,10 @@ uvicorn app:app --reload                                       # web app -> http
 - [ ] Verify all labels against the law
 - [ ] Second LLM (Gemini) + real redacted contracts as a test set
 - [x] Web app: FastAPI + upload page
-- [ ] Deploy (public demo link)
+- [x] Deploy: Azure Container Apps, image built by GitHub Actions
 - [ ] Cite the article the model relied on (prompt v4)
 - [ ] Arabic contracts and Arabic/English mismatch check
 
 ## Tech
 
-Python · FastAPI · RapidOCR · Tesseract · scikit-learn · OpenAI / Gemini APIs · BM25 & embedding retrieval · pandas · Pillow
+Python · FastAPI · Docker · Azure Container Apps · GitHub Actions · RapidOCR · Tesseract · scikit-learn · OpenAI / Gemini APIs · BM25 & embedding retrieval · pandas · Pillow

@@ -1,9 +1,10 @@
 # Renewal Shield web app — container for Azure Container Apps (or any Docker host).
 FROM python:3.11-slim
 
-# OpenCV (used by RapidOCR) needs these system libraries
-RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+# OpenCV (used by RapidOCR) needs libgl1 + libglib; tzdata so report times are Dubai time, not UTC
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 tzdata \
     && rm -rf /var/lib/apt/lists/*
+ENV TZ=Asia/Dubai
 
 # Run as a normal user, not root; the app writes its LLM answer cache to results/
 RUN useradd -m -u 1000 user
