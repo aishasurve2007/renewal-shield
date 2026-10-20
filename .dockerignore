@@ -1,0 +1,12 @@
+*
+!app.py
+!check_contract.py
+!classify_llm.py
+!classify_baseline.py
+!ocr_pipeline.py
+!law_index.py
+!law/articles.json
+!renewal_shield_clause_bank_v0.3.xlsx
+!static/index.html
+!requirements-app.txt
+!Dockerfile

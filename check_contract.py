@@ -199,7 +199,7 @@ def save(report, out_dir="reports"):
 
 # ----------------------------------------------------------------- main API (the web app will call this)
 def check(image=None, text_file=None, clause=None, provider="openai", model=None,
-          retriever="bm25", k=3, engine="rapidocr", use_llm=True):
+          retriever="bm25", k=3, engine="rapidocr", use_llm=True, max_clauses=None):
     if image:
         name = os.path.splitext(os.path.basename(image))[0]
         text, clauses, fields = read_image(image, engine)
@@ -213,8 +213,14 @@ def check(image=None, text_file=None, clause=None, provider="openai", model=None
         print("\nNo clauses found. The 'Additional Terms' section may be cut off or too blurry.\n"
               "Try a straighter, brighter photo of the whole page, or run with --no-llm to see what was read.")
 
+    skipped = 0
+    if max_clauses and len(clauses) > max_clauses:     # web demo: cap the API cost per photo
+        skipped = len(clauses) - max_clauses
+        clauses = clauses[:max_clauses]
+
     report = {
         "name": name, "checked_at": time.strftime("%Y-%m-%d %H:%M"),
+        "skipped_clauses": skipped,
         "provider": provider, "model": model or DEFAULTS[provider][0],
         "prompt_version": PROMPT_VERSION, "mode": MODE, "retriever": f"{retriever}-k{k}",
         "fields": {k_: v for k_, v in fields.items()} if fields else {},

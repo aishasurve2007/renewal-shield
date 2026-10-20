@@ -1,0 +1,12 @@
+# What the deployed web app needs (smaller than requirements.txt: no evaluation tools).
+fastapi
+uvicorn
+python-multipart
+pandas
+openpyxl
+numpy
+pillow
+# Pinned: see requirements.txt / RESULTS.md 3.1
+rapidocr-onnxruntime==1.2.3
+scikit-learn      # imported by classify_baseline (shared helpers)
+joblib
