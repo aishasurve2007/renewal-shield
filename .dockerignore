@@ -1,5 +1,6 @@
 *
 !app.py
+!demo_guard.py
 !check_contract.py
 !classify_llm.py
 !classify_baseline.py

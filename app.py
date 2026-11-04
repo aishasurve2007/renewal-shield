@@ -21,6 +21,10 @@ Settings (environment variables, or .env locally; on Hugging Face: Space setting
   RS_CLAUSES_PER_HOUR    single-clause checks per visitor/hour  (default 20)
   RS_DAILY_LIMIT         all checks, all visitors, per day      (default 150)
   RS_MAX_CLAUSES         clauses checked per photo              (default 15)
+  RS_MAX_MB              largest upload in MB                   (default 10)
+  RS_TURNSTILE_SITE_KEY  Cloudflare Turnstile site key (public)
+  RS_TURNSTILE_SECRET    Cloudflare Turnstile secret   (secret!)  both unset = no human check
+  (limits, Turnstile and the upload size check live in demo_guard.py)
 
 Why the limits: on a public link every check is paid from my OpenAI key. One photo is about
 6 clauses x ~2.5k tokens on gpt-4.1-mini, well under 1 US cent, so 150 checks/day stays below
@@ -33,23 +37,19 @@ Nothing is stored except the LLM answer cache (clause text + answer), as in the 
 import os
 import tempfile
 import threading
-import time
-from collections import defaultdict, deque
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import demo_guard
 from check_contract import check          # also loads .env (via classify_llm)
 
 PROVIDER = os.environ.get("RS_PROVIDER", "openai")
 MODEL = os.environ.get("RS_MODEL") or None
-PHOTOS_PER_HOUR = int(os.environ.get("RS_PHOTOS_PER_HOUR", 5))
-CLAUSES_PER_HOUR = int(os.environ.get("RS_CLAUSES_PER_HOUR", 20))
-DAILY_LIMIT = int(os.environ.get("RS_DAILY_LIMIT", 150))
 MAX_CLAUSES = int(os.environ.get("RS_MAX_CLAUSES", 15))
-MAX_MB = 10
+MAX_MB = demo_guard.MAX_MB
 ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,36 +60,15 @@ app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="
 _lock = threading.Lock()
 
 
-# ----------------------------------------------------------------- limits (in memory; reset on restart)
-_hits = defaultdict(deque)             # (visitor, kind) -> timestamps in the last hour
-_day = {"date": None, "count": 0}
-_limits_lock = threading.Lock()
-
-
-def _visitor(request: Request):
-    """Visitor IP. Behind Hugging Face / Render the real IP is the first X-Forwarded-For entry."""
-    fwd = request.headers.get("x-forwarded-for", "")
-    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?")
-
-
-def _take(request: Request, kind: str, per_hour: int):
-    """Count one check against the visitor's hourly limit and the global daily limit, or refuse."""
-    now, who = time.time(), _visitor(request)
-    with _limits_lock:
-        today = time.strftime("%Y-%m-%d")
-        if _day["date"] != today:
-            _day["date"], _day["count"] = today, 0
-        if _day["count"] >= DAILY_LIMIT:
-            raise HTTPException(429, "The demo has reached its daily limit. Please try again tomorrow.")
-        q = _hits[(who, kind)]
-        while q and now - q[0] > 3600:
-            q.popleft()
-        if len(q) >= per_hour:
-            wait = int((3600 - (now - q[0])) / 60) + 1
-            raise HTTPException(429, f"You've reached the demo limit ({per_hour} per hour). "
-                                     f"Try again in about {wait} minutes.")
-        q.append(now)
-        _day["count"] += 1
+@app.middleware("http")
+async def limit_upload_size(request: Request, call_next):
+    """Refuse an oversized upload from its Content-Length, before FastAPI reads the body."""
+    if request.method == "POST" and request.url.path == "/api/check":
+        try:
+            demo_guard.check_size(request)
+        except HTTPException as e:
+            return JSONResponse({"detail": e.detail}, status_code=e.status_code)
+    return await call_next(request)
 
 
 def _run(**kwargs):
@@ -113,12 +92,19 @@ def index():
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "provider": PROVIDER, "checks_today": _day["count"], "daily_limit": DAILY_LIMIT}
+    return {"ok": True, "provider": PROVIDER, "checks_today": demo_guard.checks_today(),
+            "daily_limit": demo_guard.DAILY_LIMIT}
+
+
+@app.get("/api/config")
+def config():
+    """What the page needs to know: the public Turnstile site key (empty = no widget)."""
+    return {"turnstile_site_key": demo_guard.TURNSTILE_SITE_KEY if demo_guard.TURNSTILE_ON else ""}
 
 
 # Plain `def` (not async): FastAPI runs it in a worker thread, so a 20 s OCR doesn't block the server.
 @app.post("/api/check")
-def check_photo(request: Request, file: UploadFile = File(...)):
+def check_photo(request: Request, file: UploadFile = File(...), cf_token: str = Form("")):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext in (".heic", ".heif"):
         raise HTTPException(400, "iPhone HEIC photos aren't supported yet. Export as JPG, or take a screenshot of the photo.")
@@ -127,7 +113,7 @@ def check_photo(request: Request, file: UploadFile = File(...)):
     data = file.file.read(MAX_MB * 1024 * 1024 + 1)
     if len(data) > MAX_MB * 1024 * 1024:
         raise HTTPException(413, f"File is over {MAX_MB} MB.")
-    _take(request, "photo", PHOTOS_PER_HOUR)       # after validation: a wrong file type doesn't use a check
+    demo_guard.guard(request, "photo", cf_token)   # after validation: a wrong file type doesn't use a check
 
     fd, path = tempfile.mkstemp(suffix=ext)
     try:
@@ -142,6 +128,7 @@ def check_photo(request: Request, file: UploadFile = File(...)):
 
 class ClauseIn(BaseModel):
     text: str
+    cf_token: str = ""
 
 
 @app.post("/api/check-clause")
@@ -151,5 +138,5 @@ def check_clause(request: Request, body: ClauseIn):
         raise HTTPException(400, "Paste a full clause (at least a sentence).")
     if len(text) > 2000:
         raise HTTPException(400, "That's too long for one clause. Paste clauses one at a time.")
-    _take(request, "clause", CLAUSES_PER_HOUR)
+    demo_guard.guard(request, "clause", body.cf_token)
     return _run(clause=text)

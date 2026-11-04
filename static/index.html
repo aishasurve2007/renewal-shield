@@ -43,6 +43,7 @@
   .preview span { font-size: 14px; color: var(--muted); word-break: break-all; }
   textarea { width: 100%; min-height: 110px; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
              background: var(--bg); color: var(--ink); font: inherit; resize: vertical; }
+  #human { margin-top: 14px; min-height: 0; }
   .btn { margin-top: 14px; width: 100%; padding: 12px; border: 0; border-radius: 10px; font: inherit;
          font-weight: 600; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -107,6 +108,7 @@
       <textarea id="clause" placeholder="e.g. The security deposit is non-refundable."></textarea>
     </div>
 
+    <div id="human"></div>
     <button class="btn" id="go" disabled>Check contract</button>
     <div class="status" id="status"><div class="spin"></div><span id="status-text"></span></div>
     <div class="error" id="error"></div>
@@ -128,6 +130,30 @@ const ICON = { red: "🔴", yellow: "🟡", invalid: "❔", none: "✅" };
 const MONEY = ["annual_rent", "contract_value", "security_deposit"];
 let mode = "photo", file = null;
 
+// ---------- human check (Cloudflare Turnstile). Off when the server sends no site key (local runs).
+let widget = null, token = "";
+fetch("/api/config").then((r) => r.json()).then((cfg) => {
+  if (!cfg.turnstile_site_key) return;
+  window.onTurnstileLoad = () => {
+    widget = turnstile.render("#human", {
+      sitekey: cfg.turnstile_site_key,
+      callback: (t) => { token = t; updateButton(); },
+      "expired-callback": () => { token = ""; updateButton(); },
+      "error-callback": () => { token = ""; updateButton(); },
+    });
+  };
+  const s = document.createElement("script");
+  s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad";
+  s.async = true;
+  document.head.append(s);
+  widget = "loading";
+  updateButton();
+}).catch(() => {});
+
+function resetHuman() {           // each token works once: get a fresh one after every check
+  if (widget && widget !== "loading" && window.turnstile) { token = ""; turnstile.reset(widget); }
+}
+
 // ---------- tabs
 document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
   mode = t.dataset.tab;
@@ -141,6 +167,12 @@ document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () 
 // ---------- file pick / drop
 function setFile(f) {
   if (!f) return;
+  if (f.size > 10 * 1024 * 1024) {
+    $("error").textContent = "That photo is over 10 MB. Try a smaller one or a screenshot.";
+    $("error").style.display = "block";
+    return;
+  }
+  $("error").style.display = "none";
   file = f;
   $("thumb").src = URL.createObjectURL(f);
   $("fname").textContent = `${f.name} · ${(f.size / 1e6).toFixed(1)} MB`;
@@ -155,7 +187,8 @@ drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
 $("clause").addEventListener("input", updateButton);
 
 function updateButton() {
-  $("go").disabled = mode === "photo" ? !file : $("clause").value.trim().length < 10;
+  const ready = mode === "photo" ? !!file : $("clause").value.trim().length >= 10;
+  $("go").disabled = !ready || (widget !== null && !token);
 }
 
 // ---------- run
@@ -173,13 +206,13 @@ $("go").addEventListener("click", async () => {
   $("go").disabled = true;
   let req;
   if (mode === "photo") {
-    const fd = new FormData(); fd.append("file", file);
+    const fd = new FormData(); fd.append("file", file); fd.append("cf_token", token);
     req = fetch("/api/check", { method: "POST", body: fd });
     showStatus([[0, "Uploading ..."], [800, "Reading the contract (about 20 seconds) ..."],
                 [20000, "Checking each clause against the law ..."], [45000, "Almost done ..."]]);
   } else {
     req = fetch("/api/check-clause", { method: "POST", headers: { "Content-Type": "application/json" },
-                                       body: JSON.stringify({ text: $("clause").value }) });
+                                       body: JSON.stringify({ text: $("clause").value, cf_token: token }) });
     showStatus([[0, "Checking against the law ..."]]);
   }
   try {
@@ -191,7 +224,7 @@ $("go").addEventListener("click", async () => {
     $("error").textContent = err.message;
     $("error").style.display = "block";
   } finally {
-    hideStatus(); updateButton();
+    hideStatus(); resetHuman(); updateButton();
   }
 });
 
