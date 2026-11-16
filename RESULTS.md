@@ -189,6 +189,85 @@ hit@3 by category:
 | BM25 | 10/10 | 3/10 | 6/10 | 6/10 | 8/10 | **0/10** |
 | Embeddings | 10/10 | **9/10** | 8/10 | 7/10 | 7/10 | **2/10** |
 
+### 4.2.1 Fixing the vocabulary gap (Nov 2026)
+
+Early termination scored 0/10 because clause and law share no words: clauses say "penalty", "leave early",
+"vacates"; Art. 7 is one sentence about a contract that "may not be unilaterally terminated". Maintenance
+had the same problem ("repairs" vs "maintenance works").
+
+**Fix:** each article gets a hand-written, plain-language *topic line* (`law/topics.json`), e.g. for Art. 7:
+"early termination, ... breaking the lease, break clause, early exit penalty ...". The topic line is used
+**for search only** (retriever `bm25-topics`); the LLM still receives only the verbatim article text, so
+finding 3 (verbatim law overrides outdated knowledge) is untouched. A test enforces that topic text never
+reaches the prompt. `bm25` and `openai` are unchanged, so every earlier row in this file still reproduces.
+A fourth retriever, `fusion`, combines `bm25-topics` and embeddings by rank (reciprocal rank fusion, top 10 each).
+
+Clause bank (n = 60), no API needed:
+
+| Retriever | hit@1 | hit@3 | hit@5 |
+|---|---|---|---|
+| BM25 (before) | 35% | 55% | 67% |
+| **BM25 + topic lines** | **68%** | **87%** | **93%** |
+
+hit@3 by category:
+
+| | Deposit | Maintenance | Rent increase | Notice | Landlord termination | Early termination |
+|---|---|---|---|---|---|---|
+| BM25 (before) | 10/10 | 3/10 | 6/10 | 6/10 | 8/10 | **0/10** |
+| BM25 + topic lines | 10/10 | 6/10 | 8/10 | 9/10 | 9/10 | **10/10** |
+
+No category got worse. But **these numbers are optimistic**: I wrote the topic lines knowing which bank
+clauses missed, so the bank is a development set for retrieval too.
+
+**Held-out check.** Before writing any topic line, 20 new clauses were written with deliberately different
+wording ("break the lease", "the Second Party shall fix anything that stops working", "Lessor", "Owner")
+and committed (`eval/retrieval_heldout.csv`, commit before the retrieval change). They were not used for tuning:
+
+| Retriever | hit@1 | hit@3 | hit@5 |
+|---|---|---|---|
+| BM25 (before) | 6/20 | 8/20 (40%) | 9/20 |
+| BM25 + topic lines | 9/20 | **13/20 (65%)** | 13/20 |
+
+So the fix generalises (+5 clauses, early termination 1/4 → 3/4, rent increase 2/4 → 4/4), but the honest
+size of the gain is **40% → 65%**, not 55% → 87%. Maintenance stays 0/3 on held-out wording: keyword
+matching cannot connect "stops working" or "servicing of the AC units" to Art. 16 however many keywords
+are added by hand. That is the gap embeddings should close (`fusion`); n = 20, so one clause = 5 points.
+The 7 held-out misses were deliberately **not** fixed, so this set stays usable.
+
+Some remaining bank "misses" are arguably label questions rather than retrieval errors: MA-F04 ("tenant
+repairs damage caused by his own misuse") retrieves Art. 19 (the tenant's duty of care), which fits the
+clause better than the labelled Art. 16. To be settled during label verification.
+
+**Robustness to OCR noise.** The LT-P03 failure in 3.1 happened because slightly garbled text retrieved
+different articles. Simulating that (`--noise`: each character replaced, dropped or doubled with the given
+probability; mean hit@3 over 5 seeds, n = 60):
+
+| Retriever | clean | 3% character errors | 6% character errors |
+|---|---|---|---|
+| BM25 (before) | 33 | 33.2 (range 31–35) | 28.0 (23–34) |
+| BM25 + topic lines | 52 | 50.0 (48–52) | 46.0 (42–49) |
+
+Topic lines add several independent keywords per article, so losing one word to OCR matters less. This is
+simulated noise, not real OCR output; the real-photo set (3.1) is the proper test and has not been re-run.
+
+**Not yet measured (needs the OpenAI API; run `python eval/run_api_evals.py`):** `fusion` hit@k on both
+sets, and whether better retrieval changes any classification (hybrid v3 with `bm25-topics`). Until that
+run is in, the web app keeps using plain `bm25`, the retriever every published classification number was
+measured with.
+
+### 4.2.2 Prompt v4: which article did the model rely on?
+
+v4 is v3 plus one output field: `"article"`, the id of the one retrieved article the answer relies on most
+(or "none"). The id must be one of the articles shown in that prompt: anything else, including a real
+article that was not shown, is recorded as `invalid` and never displayed as a citation. Two metrics:
+
+- **right article cited**: the cited article is one of the clause's law references (cannot exceed retrieval hit@3);
+- **... when it was shown**: the same, counted only where a right article was in the prompt. This separates
+  "retrieval missed it" from "the model picked the wrong one".
+
+`--prompt-version v3` still builds the exact v3 prompt (a test pins its hash), so v3 answers stay reproducible.
+**v4 has not been run yet**: no v4 number exists. `python eval/run_api_evals.py` runs it.
+
 ### 4.3 Real-wording check: the official Ejari standard terms
 
 The benchmark clauses were all written by me. As a first check on real wording, I ran hybrid on the
@@ -271,6 +350,11 @@ invented a problem to go with it (section 4.3).
   reported. Only a new test set gives a clean number.
 - **Partly circular guidance.** The practice guidance in the `law`/`hybrid` prompts was written alongside
   the labels, so it is close to a labelling guide. The `zero` and `oracle` modes don't use it.
+- **Retrieval tuned on the bank.** The topic lines (4.2.1) were written after seeing the bank's retrieval
+  misses. Quote the held-out number (65% hit@3, n = 20) rather than the bank number (87%).
+- **v3 answers are not in the committed cache.** `results/llm_cache.jsonl` in the repository holds the v1/v2
+  answers; the prompt-v3 rows above were produced locally and their cached answers and result files were not
+  committed, so those rows cannot yet be re-checked from the repository alone.
 - **One LLM.** GPT-4.1-mini only so far. Gemini runs are pending (free-tier quota).
 - **Not legal advice.** The tool flags clauses to check; it doesn't replace a lawyer or the RDC.
 
@@ -297,6 +381,11 @@ python classify_llm.py --provider openai --mode rag    --ocr-dir out
 python classify_llm.py --provider openai --mode hybrid --ocr-dir out
 python classify_llm.py --provider openai --mode hybrid --clauses real/real_clauses.csv  # Ejari terms
 python classify_llm.py --compare                           # → results/comparison.csv
+python law_index.py --eval --retriever bm25-topics         # retrieval with topic lines (no API)
+python law_index.py --eval --retriever bm25-topics --clauses eval/retrieval_heldout.csv
+python law_index.py --eval --retriever bm25-topics --noise 0.03 --seed 0   # simulated OCR errors
+python eval/run_api_evals.py                               # fusion + hybrid v3/v4 with bm25-topics (needs API key)
+pip install -r requirements-test.txt && pytest             # 77 tests, no API, ~2 s
 ```
 
 API keys go in `.env` (see `.env.example`). LLM answers are cached in `results/llm_cache.jsonl`,

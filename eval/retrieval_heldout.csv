@@ -1,0 +1,21 @@
+id,category,text,law_ref
+H-RI-01,rent_increase,"The Lessor shall be entitled to revise the annual rental by 7% for each subsequent tenancy year.",Art. 9; Decree 43/2013
+H-RI-02,rent_increase,"The rental amount for any renewed term shall be determined using the RERA rent calculator applicable on the renewal date.",Art. 9; Decree 43/2013
+H-RI-03,rent_increase,"Rent for the following year will be whatever the Landlord is charging for comparable units in the building at that time.",Art. 9; Decree 43/2013
+H-RI-04,rent_increase,"The Second Party accepts a fixed uplift of AED 8,000 on the yearly rent should he choose to stay another year.",Art. 9; Decree 43/2013
+H-NP-01,notice_period,"The Landlord will let the Tenant know of any new rent two weeks before the tenancy ends.",Art. 14
+H-NP-02,notice_period,"Should either side want different conditions for the next term, that side must write to the other no later than 90 days ahead of the end date.",Art. 14
+H-NP-03,notice_period,"The Lessor can alter the payment schedule and number of cheques for the renewed term without prior notification.",Art. 14
+H-LT-01,landlord_termination,"If the Owner wishes to move into the apartment himself, the Tenant must hand it back within two months of being told.",Art. 25
+H-LT-02,landlord_termination,"The Lessor may ask the Tenant to leave if the unit is to be demolished, provided twelve months' notice is sent by registered post.",Art. 25
+H-LT-03,landlord_termination,"The Tenant shall be evicted immediately if any cheque is returned unpaid.",Art. 25
+H-LT-04,landlord_termination,"A purchaser of the unit shall take it subject to this tenancy for the remainder of the term.",Art. 28
+H-ET-01,early_termination,"Should the Tenant wish to break the lease, he shall forfeit two months' rent.",Art. 7
+H-ET-02,early_termination,"The Tenant is locked in for the full twelve months and cannot hand back the unit sooner.",Art. 7
+H-ET-03,early_termination,"If the Second Party moves out before the end date for any reason, the rent already paid will not be returned.",Art. 7
+H-ET-04,early_termination,"The lease may be ended ahead of time only where both parties consent in writing.",Art. 7
+H-MA-01,maintenance,"The Second Party shall fix anything that stops working in the flat, at his own expense.",Art. 16
+H-MA-02,maintenance,"Servicing of the AC units twice a year is for the Lessor's account.",Art. 16
+H-MA-03,maintenance,"The Owner accepts no responsibility for leaks, pest infestation or appliance failure during the tenancy.",Art. 16
+H-DE-01,deposit,"The Lessor shall hold a sum of AED 4,000 as security, to be handed back once the unit is inspected and found in the same state as received, fair usage excepted.",Art. 20; Art. 21
+H-DE-02,deposit,"Any repainting required when the Tenant leaves will be charged against the security amount at a flat AED 2,500.",Art. 20; Art. 21

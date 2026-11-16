@@ -131,7 +131,13 @@ CACHE = "results/llm_cache.jsonl"
 #   v2: explicit rule that yellow/red => problem (v1 sometimes said "unfavourable" but labelled "fine")
 #   v3: "other" category for routine clauses outside the six areas; guidance that accepting the unit in
 #       its current condition is fine (v2 read a repair waiver into the official Ejari term 1)
-PROMPT_VERSION = "v3"
+#   v4: the model also names the ONE article it relied on ("article": "L26-25"), chosen from the articles
+#       it was shown. Lets us measure citation accuracy and show the article in the report. v4 only adds
+#       that field; everything else is the v3 prompt. Select with --prompt-version v4.
+# From v4 on, old versions stay runnable (--prompt-version v3 rebuilds the exact v3 prompt, so its cached
+# answers are found again). v1 and v2 were edited in place at the time; their numbers live on in results/.
+PROMPT_VERSION = "v3"            # default, also what the web app uses
+PROMPT_VERSIONS = ("v3", "v4")
 
 
 # ----------------------------------------------------------------- prompts
@@ -140,8 +146,30 @@ LAW_TEXT_INTRO = ("Relevant articles of Dubai tenancy law, quoted verbatim from 
                   "where they differ from what you remember, these are the current law:")
 
 
-def build_prompt(text, mode, articles=None):
-    """zero: no law | law: rule summaries | rag/oracle: verbatim articles | hybrid: guidance + retrieved articles."""
+_REASON_LINE = ' "reason": one short sentence}'
+_ARTICLE_LINE = (' "reason": one short sentence,\n'
+                 ' "article": the id of the ONE article below that your answer relies on most - the code before\n'
+                 '            the "|" in its heading, e.g. "L26-25" - or "none" if no article below is relevant}')
+assert _REASON_LINE in SYSTEM
+SYSTEM_V4 = SYSTEM.replace(_REASON_LINE, _ARTICLE_LINE)
+
+
+def build_prompt(text, mode, articles=None, version=None):
+    """zero: no law | law: rule summaries | rag/oracle: verbatim articles | hybrid: guidance + retrieved articles.
+    version: prompt version (default PROMPT_VERSION). v4 asks for the article relied on, in the modes that
+    show articles; in zero/law mode there is nothing to cite, so v4 equals v3 there."""
+    version = version or PROMPT_VERSION
+    if version not in PROMPT_VERSIONS:
+        raise ValueError(f"unknown prompt version {version!r} (have {PROMPT_VERSIONS})")
+    if version == "v4" and mode in ("rag", "oracle", "hybrid"):
+        from law_index import format_articles
+        law = LAW_TEXT_INTRO + "\n\n" + format_articles(articles or [], with_ids=True)
+        if mode == "hybrid":
+            system = (SYSTEM_V4 + "\n\nPractice guidance - what is normal in Dubai tenancy contracts and how "
+                      "serious each issue is (use this to decide red / yellow / fine):\n" + LAW_RULES + "\n\n" + law)
+        else:
+            system = SYSTEM_V4 + "\n\n" + law
+        return system, f'Clause: "{text}"'
     if mode == "law":
         system = SYSTEM + "\n\n" + LAW_RULES
     elif mode in ("rag", "oracle"):
@@ -196,8 +224,19 @@ def call_llm(provider, model, system, user):
     raise ValueError(provider)
 
 
-def parse_answer(raw):
-    """Pull the JSON object out of the reply and normalise it."""
+def parse_article(value, allowed_ids):
+    """The article the model says it relied on. Only ids it was actually shown are accepted:
+    anything else (an invented or misremembered article) becomes "invalid", never a citation."""
+    v = str(value or "").strip().strip("[]").strip()
+    if v.lower() in ("", "none", "null", "n/a"):
+        return "none"
+    by_upper = {a.upper(): a for a in allowed_ids}
+    return by_upper.get(v.upper(), "invalid")
+
+
+def parse_answer(raw, allowed_ids=None):
+    """Pull the JSON object out of the reply and normalise it.
+    allowed_ids (prompt v4): ids of the articles shown to the model; adds a checked "article" field."""
     m = re.search(r"\{.*\}", raw or "", re.S)
     try:
         d = json.loads(m.group(0)) if m else {}
@@ -222,9 +261,12 @@ def parse_answer(raw):
         sev = "none"
     if sev not in ("red", "yellow", "none"):
         sev = "invalid"
-    return {"category": cat if cat in CATEGORIES else "invalid",
-            "label": label, "severity": sev, "repaired": repaired,
-            "reason": str(d.get("reason", ""))[:300]}
+    out = {"category": cat if cat in CATEGORIES else "invalid",
+           "label": label, "severity": sev, "repaired": repaired,
+           "reason": str(d.get("reason", ""))[:300]}
+    if allowed_ids is not None:
+        out["article"] = parse_article(d.get("article"), allowed_ids)
+    return out
 
 
 # ----------------------------------------------------------------- cache
@@ -240,16 +282,17 @@ def load_cache():
     return cache
 
 
-def cache_key(provider, model, mode, text, articles=None):
-    system, user = build_prompt(text, mode, articles)
+def cache_key(provider, model, mode, text, articles=None, version=None):
+    system, user = build_prompt(text, mode, articles, version)
     return hashlib.sha1(f"{provider}|{model}|{mode}|{system}|{user}".encode()).hexdigest()
 
 
-def classify(provider, model, mode, text, cache, delay, articles=None):
-    key = cache_key(provider, model, mode, text, articles)
+def classify(provider, model, mode, text, cache, delay, articles=None, version=None):
+    version = version or PROMPT_VERSION
+    key = cache_key(provider, model, mode, text, articles, version)
     if key in cache:
         return cache[key]["answer"]
-    system, user = build_prompt(text, mode, articles)
+    system, user = build_prompt(text, mode, articles, version)
     for attempt in range(5):
         try:
             raw = call_llm(provider, model, system, user)
@@ -272,7 +315,8 @@ def classify(provider, model, mode, text, cache, delay, articles=None):
                 time.sleep(wait)
                 continue
             raise SystemExit(f"Network problem after 5 tries: {e}. Answers so far are saved - run again.")
-    ans = parse_answer(raw)
+    cites = version == "v4" and mode in ("rag", "oracle", "hybrid")
+    ans = parse_answer(raw, [a["id"] for a in articles or []] if cites else None)
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
     with open(CACHE, "a", encoding="utf-8") as f:
         f.write(json.dumps({"key": key, "provider": provider, "model": model, "mode": mode,
@@ -331,7 +375,8 @@ def run(args):
 
     if args.dry_run:
         row = df.iloc[0]
-        system, user = build_prompt(row["text"], args.mode, pick_articles(args, row, row["text"]))
+        system, user = build_prompt(row["text"], args.mode, pick_articles(args, row, row["text"]),
+                                    args.prompt_version)
         print("=== SYSTEM ===\n" + system + "\n\n=== USER ===\n" + user)
         return
 
@@ -345,22 +390,23 @@ def run(args):
 
     cache = load_cache()
     rows = []
-    print(f"{args.provider} / {model} / mode={args.mode}: {len(tests)} clauses")
+    print(f"{args.provider} / {model} / mode={args.mode} / prompt {args.prompt_version}: {len(tests)} clauses")
     for i, (r, source, text) in enumerate(tests, 1):
         arts = pick_articles(args, r, text)
-        a = classify(args.provider, model, args.mode, text, cache, delay, arts)
+        a = classify(args.provider, model, args.mode, text, cache, delay, arts, args.prompt_version)
         ok = "✓" if a["label"] == r["label"] else "✗"
         print(f"{i:3d}/{len(tests)} {ok} {r['id']:7s} {source:10s} gold={r['label']:7s} pred={a['label']:7s} {a['category']}")
         rows.append({"id": r["id"], "source": source, "difficulty": r["difficulty"],
                      "gold_category": r["category"], "gold_label": r["label"], "gold_severity": r["severity"],
                      "pred_category": a["category"], "pred_label": a["label"], "pred_severity": a["severity"],
                      "repaired": a.get("repaired", False), "reason": a["reason"],
+                     "pred_article": a.get("article", ""),
                      "articles": "|".join(x["id"] for x in arts or []),
                      "gold_articles": "|".join(sorted(gold_of(r)))})
 
     res = pd.DataFrame(rows)
     mode_tag = args.mode + (f"-{args.retriever}-k{args.k}" if args.mode in ("rag", "hybrid") else "")
-    name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{mode_tag}_{PROMPT_VERSION}"
+    name = f"llm_{args.provider}_{model.replace(':', '-').replace('/', '-')}_{mode_tag}_{args.prompt_version}"
     if args.clauses:
         name += "__" + os.path.splitext(os.path.basename(args.clauses))[0]
     res.to_csv(f"results/{name}.csv", index=False)
@@ -395,6 +441,17 @@ def metrics(r):
                 for a, g in zip(r["articles"].fillna(""), r["gold_articles"].fillna("")) if str(g).strip()]
         if hits:                                   # only clauses that have a known law reference
             out["retrieval_hit"] = sum(hits) / len(hits)
+    if "pred_article" in r and r["pred_article"].fillna("").astype(str).str.len().gt(0).any():   # prompt v4+
+        rows = [(str(p), set(str(a).split("|")), set(str(g).split("|")))
+                for p, a, g in zip(r["pred_article"].fillna(""), r["articles"].fillna(""), r["gold_articles"].fillna(""))
+                if str(g).strip()]                 # only clauses that have a known law reference
+        if rows:
+            # cited the right article, over all clauses (can't beat retrieval: only shown articles can be cited)
+            out["citation"] = sum(p in g for p, a, g in rows) / len(rows)
+            shown = [(p, g) for p, a, g in rows if a & g]
+            # ... and over clauses where a right article was actually shown to the model
+            out["citation_when_shown"] = sum(p in g for p, g in shown) / len(shown) if shown else float("nan")
+            out["citation_invalid"] = sum(p == "invalid" for p, a, g in rows) / len(rows)
     return out
 
 
@@ -408,7 +465,9 @@ def summarize(res, name):
               f"{eh} | severity {m['severity']:6.1%}"
               + (f" | invalid answers {m['invalid']:.0%}" if m["invalid"] else "")
               + (f" | off-format answers repaired {m['repaired']:.0%}" if m["repaired"] else "")
-              + (f" | right article given {m['retrieval_hit']:.0%}" if "retrieval_hit" in m else ""))
+              + (f" | right article given {m['retrieval_hit']:.0%}" if "retrieval_hit" in m else "")
+              + (f" | right article cited {m['citation']:.0%} ({m['citation_when_shown']:.0%} when it was shown; "
+                 f"invented ids {m['citation_invalid']:.0%})" if "citation" in m else ""))
 
 
 def compare():
@@ -429,7 +488,8 @@ def compare():
                          "category": f"{m['category']:.1%}", "problem/fine": f"{m['label']:.1%}",
                          "pf_easy": f"{m['label_easy']:.0%}", "pf_hard": f"{m['label_hard']:.0%}",
                          "severity": f"{m['severity']:.1%}",
-                         "right_article": f"{m['retrieval_hit']:.0%}" if "retrieval_hit" in m else ""})
+                         "right_article": f"{m['retrieval_hit']:.0%}" if "retrieval_hit" in m else "",
+                         "cited_right": f"{m['citation']:.0%}" if "citation" in m else ""})
     table = pd.DataFrame(rows)
     print(table.to_string(index=False))
     table.to_csv("results/comparison.csv", index=False)
@@ -443,7 +503,10 @@ def main():
     ap.add_argument("--mode", choices=["zero", "law", "rag", "oracle", "hybrid"], default="zero",
                     help="zero: no law | law: rule summaries | rag: retrieved articles | oracle: the correct "
                          "articles | hybrid: practice guidance + retrieved articles")
-    ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25", help="for --mode rag/hybrid")
+    ap.add_argument("--retriever", choices=["bm25", "openai", "bm25-topics", "fusion"], default="bm25",
+                    help="for --mode rag/hybrid (see law_index.py)")
+    ap.add_argument("--prompt-version", choices=list(PROMPT_VERSIONS), default=PROMPT_VERSION,
+                    help="v3 (default) | v4: also names the article relied on")
     ap.add_argument("-k", type=int, default=3, help="articles retrieved per clause (--mode rag/hybrid)")
     ap.add_argument("--bank", default=None)
     ap.add_argument("--clauses", default=None, help="CSV of other clauses to test (id,text,category,label,severity)")

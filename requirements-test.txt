@@ -1,0 +1,8 @@
+# What the test suite needs (no OCR engine, no API keys): pip install -r requirements-test.txt && pytest
+pytest
+pandas
+openpyxl
+numpy
+pillow
+scikit-learn
+joblib

@@ -247,7 +247,7 @@ def main():
     src.add_argument("--clause", help="a single clause, in quotes")
     ap.add_argument("--provider", default="openai", choices=list(DEFAULTS))
     ap.add_argument("--model", default=None)
-    ap.add_argument("--retriever", default="bm25", choices=["bm25", "openai"])
+    ap.add_argument("--retriever", default="bm25", choices=["bm25", "openai", "bm25-topics", "fusion"])
     ap.add_argument("-k", type=int, default=3, help="law articles given to the model per clause")
     ap.add_argument("--engine", default="rapidocr", choices=["rapidocr", "tesseract"])
     ap.add_argument("--no-llm", action="store_true", help="OCR only, no API calls")

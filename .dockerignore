@@ -7,6 +7,7 @@
 !ocr_pipeline.py
 !law_index.py
 !law/articles.json
+!law/topics.json
 !renewal_shield_clause_bank_v0.3.xlsx
 !static/index.html
 !requirements-app.txt
