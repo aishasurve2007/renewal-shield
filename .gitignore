@@ -5,4 +5,5 @@ __pycache__/
 out/
 models/
 data2/
-data3/
+data3/.pytest_cache/
+

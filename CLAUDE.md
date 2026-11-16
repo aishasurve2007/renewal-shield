@@ -28,6 +28,8 @@ python classify_llm.py --provider openai --mode hybrid --ocr-dir out
 python classify_llm.py --compare                             # → results/comparison.csv
 python check_contract.py --image out/photo/contract_0001.png
 uvicorn app:app --reload                                     # http://127.0.0.1:8000
+pip install -r requirements-test.txt && pytest               # tests: no API, ~2 s
+python eval/run_api_evals.py                                 # all API-dependent evals in one go
 ```
 Use `--dry-run` / `--limit 5` on `classify_llm.py` before any full API run.
 
@@ -37,6 +39,8 @@ Use `--dry-run` / `--limit 5` on `classify_llm.py` before any full API run.
   eval and report before → after. A regression is a blocker, not a footnote.
 - **Benchmark honesty is the point of this project.**
   - New prompt = new version (v4, v5…). Never edit v2/v3 in place; old cached results must stay reproducible.
+    Select with `--prompt-version`; a test pins the v3 prompt hash. Same for retrievers: add a new one, don't change `bm25`.
+  - `eval/retrieval_heldout.csv` is held-out for retrieval: never tune topic lines (`law/topics.json`) on its misses.
   - Never delete or rewrite `results/llm_cache.jsonl` entries.
   - `data3` and any future real-contract set are **held-out**: never tune on them. If something was tuned on a set, say so in RESULTS.md.
   - Report every run, including the ones that got worse. n = 60, so 1 clause = 1.7 points: call 1–2 clause differences noise.

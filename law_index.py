@@ -8,8 +8,14 @@ Renewal Shield — law index + retrieval (Phase 3, step 3b: RAG).
    Decree 43/2013 (rent increase caps) is added as well.
 
 2. RETRIEVE: finds the articles most relevant to a clause.
-     bm25    – keyword ranking, no API, instant (default)
-     openai  – embeddings (text-embedding-3-small), needs OPENAI_API_KEY
+     bm25         – keyword ranking over the law text, no API, instant (default)
+     openai       – embeddings (text-embedding-3-small), needs OPENAI_API_KEY
+     bm25-topics  – bm25, but each article is also searchable by a plain-language topic line
+                    (law/topics.json). Fixes vocabulary gaps: clauses say "penalty for leaving early",
+                    Art. 7 says "may not be unilaterally terminated". No API.
+     fusion       – bm25-topics and embeddings combined by rank (reciprocal rank fusion)
+   The topic lines are search-only. The LLM is always given the verbatim article text.
+   bm25 and openai are unchanged, so earlier results stay reproducible.
 
 3. EVAL: every clause in the bank has a law_ref (e.g. "Art. 28 ...; Art. 25(2)(d)"),
    so we can measure whether retrieval finds the right article (hit@k).
@@ -24,6 +30,9 @@ Usage:
   python law_index.py --query "The Landlord may terminate at any time with 2 months notice"
   python law_index.py --eval
   python law_index.py --eval --retriever openai
+  python law_index.py --eval --retriever bm25-topics
+  python law_index.py --eval --retriever bm25-topics --clauses eval/retrieval_heldout.csv
+  python law_index.py --eval --retriever bm25-topics --noise 0.03     # simulated OCR errors
 """
 
 import argparse
@@ -32,11 +41,15 @@ import hashlib
 import json
 import math
 import os
+import random
 import re
 from collections import Counter
 
 LAW_DIR = "law"
 INDEX = os.path.join(LAW_DIR, "articles.json")
+TOPICS = os.path.join(LAW_DIR, "topics.json")
+METHODS = ["bm25", "openai", "bm25-topics", "fusion"]
+FUSION_DEPTH = 10          # how many articles each retriever contributes to "fusion"
 
 HEADER = re.compile(r"^\s*Arti[cd]l?e\s*\(?\s*(\d+)\s*\)?\s*$", re.M)   # "Article (25)" alone on a line
 NOISE = [
@@ -203,18 +216,59 @@ def _cos(a, b):
 _cache = {}
 
 
+def load_topics():
+    """{article id: plain-language topic line}. Search-only: never shown to the LLM."""
+    if not os.path.exists(TOPICS):
+        return {}
+    return {k: v for k, v in json.load(open(TOPICS, encoding="utf-8")).items() if not k.startswith("_")}
+
+
+def _docs(arts, with_topics=False):
+    topics = load_topics() if with_topics else {}
+    return [f"{a['source']} Article {a['article']}. {a['text']}"
+            + (f" Topics: {topics[a['id']]}." if a["id"] in topics else "") for a in arts]
+
+
+def rrf(rankings, c=60):
+    """Reciprocal rank fusion: combine several rankings (lists of doc indexes, best first) into
+    one score per doc. Uses ranks only, so BM25 scores and cosine similarities (different scales)
+    can be mixed safely."""
+    score = {}
+    for order in rankings:
+        for rank, i in enumerate(order):
+            score[i] = score.get(i, 0.0) + 1.0 / (c + rank + 1)
+    return score
+
+
+def _scores(text, arts, method):
+    """One score per article (higher = more relevant) for bm25 / openai / bm25-topics."""
+    with_topics = method == "bm25-topics" or method == "openai-topics"
+    if method in ("bm25", "bm25-topics"):
+        bm = _cache.get(method) or _cache.setdefault(method, BM25(_docs(arts, with_topics)))
+        return bm.scores(text)
+    if method in ("openai", "openai-topics"):
+        key = "doc_vecs" if method == "openai" else "doc_vecs_topics"
+        if key not in _cache:
+            _cache[key] = _embed(_docs(arts, with_topics))
+        q = _embed([text])[0]
+        return [_cos(q, v) for v in _cache[key]]
+    raise ValueError(method)
+
+
 def retrieve(text, k=3, method="bm25"):
     """Top-k current articles for a clause: list of article dicts (with 'score')."""
     arts = _cache.get("arts") or _cache.setdefault("arts", load_articles())
-    docs = [f"{a['source']} Article {a['article']}. {a['text']}" for a in arts]
-    if method == "bm25":
-        bm = _cache.get("bm25") or _cache.setdefault("bm25", BM25(docs))
-        sc = bm.scores(text)
-    elif method == "openai":
-        if "doc_vecs" not in _cache:
-            _cache["doc_vecs"] = _embed(docs)
-        q = _embed([text])[0]
-        sc = [_cos(q, v) for v in _cache["doc_vecs"]]
+    if method == "fusion":
+        ranks = []
+        for m in ("bm25-topics", "openai-topics"):
+            sc = _scores(text, arts, m)
+            # each retriever votes with its top FUSION_DEPTH only; articles sharing no word with the
+            # clause (BM25 score 0) get no vote instead of an arbitrary rank
+            ranks.append([i for i in sorted(range(len(arts)), key=lambda i: -sc[i]) if sc[i] > 0][:FUSION_DEPTH])
+        fused = rrf(ranks)
+        sc = [fused.get(i, 0.0) for i in range(len(arts))]
+    elif method in ("bm25", "openai", "bm25-topics"):
+        sc = _scores(text, arts, method)
     else:
         raise ValueError(method)
     order = sorted(range(len(arts)), key=lambda i: -sc[i])[:k]
@@ -229,34 +283,72 @@ def gold_ids(law_ref):
     return ids
 
 
-def format_articles(arts):
+def format_articles(arts, with_ids=False):
+    """Verbatim articles for the prompt. with_ids (prompt v4+) adds the article id to each heading
+    so the model can say which article it relied on. The default output is unchanged from v1-v3."""
+    if with_ids:
+        return "\n\n".join(f"[{a['id']} | {a['source']} - Article ({a['article']})]\n{a['text']}" for a in arts)
     return "\n\n".join(f"[{a['source']} - Article ({a['article']})]\n{a['text']}" for a in arts)
 
 
 # ----------------------------------------------------------------- eval
-def evaluate(method, ks=(1, 3, 5)):
+def add_noise(text, rate, rng):
+    """Simulate OCR character errors: each letter/digit is replaced, dropped or doubled with
+    probability `rate` (RESULTS.md reports ~2-3% character error on photos)."""
+    out = []
+    for ch in text:
+        if ch.isalnum() and rng.random() < rate:
+            op = rng.choice("rdx")
+            if op == "r":
+                out.append(rng.choice("abcdefghijklmnopqrstuvwxyz"))
+            elif op == "x":
+                out.append(ch + ch)
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def load_eval_clauses(path=None):
+    """The clause bank, or any CSV with columns id, text, category, law_ref."""
+    if path:
+        import pandas as pd
+        df = pd.read_csv(path).fillna("")
+        print(f"Clauses: {path} ({len(df)} clauses)")
+        return df
     from classify_baseline import load_bank
-    df = load_bank()
+    return load_bank()
+
+
+def evaluate(method, ks=(1, 3, 5), clauses=None, noise=0.0, seed=0, verbose=True):
+    """hit@k for one retriever. Returns {'n', 'hit': {k: count}, 'by_cat': {category: (hits@3, n)}}."""
+    df = load_eval_clauses(clauses)
+    rng = random.Random(seed)
     res = {k: [] for k in ks}
     misses = []
     for _, r in df.iterrows():
         gold = gold_ids(r["law_ref"])
-        got = [a["id"] for a in retrieve(r["text"], max(ks), method)]
+        text = add_noise(r["text"], noise, rng) if noise else r["text"]
+        got = [a["id"] for a in retrieve(text, max(ks), method)]
         for k in ks:
             res[k].append(bool(gold & set(got[:k])))
         if not gold & set(got[:3]):
             misses.append((r["id"], sorted(gold), got[:3]))
-    print(f"\nRetrieval ({method}) — does a correct article appear in the top k?")
-    for k in ks:
-        print(f"  hit@{k}: {sum(res[k])}/{len(res[k])} = {sum(res[k]) / len(res[k]):.1%}")
     by_cat = {}
     for (_, r), hit in zip(df.iterrows(), res[3]):
         by_cat.setdefault(r["category"], []).append(hit)
-    print("  hit@3 by category: " + ", ".join(f"{c} {sum(v)}/{len(v)}" for c, v in by_cat.items()))
-    if misses:
-        print("\nMisses at k=3 (clause, correct, retrieved):")
-        for m in misses:
-            print(f"  {m[0]:7s} want {m[1]}  got {m[2]}")
+    out = {"n": len(df), "hit": {k: sum(v) for k, v in res.items()},
+           "by_cat": {c: (sum(v), len(v)) for c, v in by_cat.items()}}
+    if verbose:
+        tag = method + (f", {noise:.0%} simulated OCR noise, seed {seed}" if noise else "")
+        print(f"\nRetrieval ({tag}) — does a correct article appear in the top k?")
+        for k in ks:
+            print(f"  hit@{k}: {sum(res[k])}/{len(res[k])} = {sum(res[k]) / len(res[k]):.1%}")
+        print("  hit@3 by category: " + ", ".join(f"{c} {h}/{n}" for c, (h, n) in out["by_cat"].items()))
+        if misses:
+            print("\nMisses at k=3 (clause, correct, retrieved):")
+            for m in misses:
+                print(f"  {m[0]:7s} want {m[1]}  got {m[2]}")
+    return out
 
 
 def main():
@@ -264,8 +356,11 @@ def main():
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--query", default=None)
     ap.add_argument("--eval", action="store_true")
-    ap.add_argument("--retriever", choices=["bm25", "openai"], default="bm25")
+    ap.add_argument("--retriever", choices=METHODS, default="bm25")
     ap.add_argument("-k", type=int, default=3)
+    ap.add_argument("--clauses", default=None, help="--eval on another clause CSV (id,text,category,law_ref)")
+    ap.add_argument("--noise", type=float, default=0.0, help="--eval with simulated OCR character errors, e.g. 0.03")
+    ap.add_argument("--seed", type=int, default=0, help="random seed for --noise")
     args = ap.parse_args()
     if args.build:
         build()
@@ -273,10 +368,10 @@ def main():
         for a in retrieve(args.query, args.k, args.retriever):
             print(f"{a['score']:8.3f}  {a['id']:8s} {a['source']}\n          {a['text'][:200]!r}\n")
     if args.eval:
-        if args.retriever == "openai":
+        if args.retriever in ("openai", "fusion"):
             from classify_llm import load_dotenv
             load_dotenv()
-        evaluate(args.retriever)
+        evaluate(args.retriever, clauses=args.clauses, noise=args.noise, seed=args.seed)
 
 
 if __name__ == "__main__":

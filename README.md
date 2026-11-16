@@ -81,7 +81,8 @@ visitors (5 photos/hour each, 150 checks/day in total) so a public link can't ru
 | `check_contract.py` | One contract end to end: photo → OCR → hybrid check → red/yellow/fine report (Markdown + JSON) |
 | `app.py`, `static/` | FastAPI web app: upload a photo, see the report; API docs at `/docs` |
 | `classify_llm.py` | LLM classifier: `zero` · `law` · `rag` · `oracle` · `hybrid`; OpenAI, Gemini, Anthropic, Ollama |
-| `law/` | Official law texts (EN/AR) and the built article index |
+| `law/` | Official law texts (EN/AR), the built article index, and search-only topic lines (`topics.json`) |
+| `tests/`, `eval/` | 77 pytest tests (no API, run in CI); held-out retrieval clauses and the API eval runner |
 | `results/` | Predictions, cached LLM answers, comparison table |
 
 ## Status
@@ -93,7 +94,9 @@ visitors (5 photos/hour each, 150 checks/day in total) so a public link can't ru
 - [ ] Second LLM (Gemini) + real redacted contracts as a test set
 - [x] Web app: FastAPI + upload page
 - [x] Deploy: Azure Container Apps, image built by GitHub Actions
-- [ ] Cite the article the model relied on (prompt v4)
+- [x] Retrieval fix: early-termination hit@3 0/10 → 10/10 on the bank; 40% → 65% on held-out wording ([RESULTS.md 4.2.1](RESULTS.md))
+- [x] Tests + CI (pytest on every push)
+- [ ] Cite the article the model relied on (prompt v4): implemented and tested, benchmark run pending
 - [ ] Arabic contracts and Arabic/English mismatch check
 
 ## Tech
